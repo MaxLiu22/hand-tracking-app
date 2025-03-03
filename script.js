@@ -384,6 +384,7 @@ function createCalculator() {
     calculator.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
     calculator.style.zIndex = '1000'; // 这个值小于画布的z-index
     calculator.style.width = '500px'; // 从250px修改为500px，增加到两倍大
+    calculator.style.cursor = 'move'; // 添加移动光标样式，表示可拖动
     
     // 创建显示屏
     const display = document.createElement('div');
@@ -459,6 +460,66 @@ function createCalculator() {
     });
     
     calculator.appendChild(buttonGrid);
+    
+    // 添加拖动功能
+    let isDragging = false;
+    let dragOffsetX, dragOffsetY;
+
+    // 鼠标按下事件 - 开始拖动
+    calculator.addEventListener('mousedown', (e) => {
+        // 只有当点击的不是按钮时才允许拖动
+        if (!e.target.classList.contains('calc-button')) {
+            isDragging = true;
+            
+            // 计算鼠标位置与计算器左上角的偏移
+            const rect = calculator.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            
+            // 提高拖动时的z-index，确保在拖动时位于顶层
+            calculator.style.zIndex = '1001';
+            
+            console.log('开始拖动计算器');
+            
+            // 防止文本选择等默认行为
+            e.preventDefault();
+        }
+    });
+
+    // 鼠标移动事件 - 拖动中
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            // 计算新位置
+            const newLeft = e.clientX - dragOffsetX;
+            const newTop = e.clientY - dragOffsetY;
+            
+            // 应用新位置
+            calculator.style.right = 'auto'; // 取消right定位，改为使用left
+            calculator.style.left = `${newLeft}px`;
+            calculator.style.top = `${newTop}px`;
+        }
+    });
+
+    // 鼠标释放事件 - 结束拖动
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            // 恢复原来的z-index
+            calculator.style.zIndex = '1000';
+            console.log('停止拖动计算器');
+        }
+    });
+
+    // 确保拖动离开窗口时也能停止
+    document.addEventListener('mouseleave', () => {
+        if (isDragging) {
+            isDragging = false;
+            // 恢复原来的z-index
+            calculator.style.zIndex = '1000';
+            console.log('停止拖动计算器 (离开窗口)');
+        }
+    });
+    
     document.body.appendChild(calculator);
     
     // 计算器变量
