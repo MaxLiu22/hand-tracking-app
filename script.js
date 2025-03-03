@@ -35,6 +35,9 @@ let pinchStartTime = 0; // 记录捏合开始的时间
 let isDragging = false; // 是否处于拖拽模式
 let dragElement = null; // 当前被拖拽的元素
 
+// 在全局范围添加地球引用变量
+let earthScene, earthCamera, earthControls, earthObj, cloudsObj;
+
 function initializeHands() {
     hands = new Hands({
         locateFile: (file) => {
@@ -296,36 +299,63 @@ function checkPinchGesture(landmarks) {
             isPinching = true;
             isDragging = false;  // 重置拖拽状态
         } 
-        // 如果已经在捏合，检查是否需要进入拖拽模式
-        else if (!isDragging && (currentTime - pinchStartTime > 4000)) {
-            // 捏合超过4秒，进入拖拽模式
-            isDragging = true;
-            dragElement = window._lastPinchElement;
-            triggerDragStart(midClickX, midClickY);
-        }
-        // 如果已经在拖拽模式，处理移动
-        else if (isDragging) {
-            // 处理拖拽移动
-            triggerDragMove(midClickX, midClickY);
-        }
-        
-        // 显示倒计时进度圈（只在未进入拖拽模式时显示）
-        if (!isDragging) {
-            const elapsedTime = currentTime - pinchStartTime;
-            const progress = Math.min(elapsedTime / 4000, 1);
-            
-            if (progress < 1) {
+        // 接下来的代码处理已经在捏合状态的情况
+        else {
+            // 如果在地球上进行交互
+            if (window._isEarthInteraction) {
+                // 旋转地球
+                if (window._earthDragStart) {
+                    rotateEarth(window._earthDragStart.x, window._earthDragStart.y, midClickX, midClickY);
+                }
+                
+                // 不需要进入拖拽模式，而是持续旋转地球
+                if (currentTime - pinchStartTime > 3000) {
+                    // 在长捏合时更新起始位置，确保平滑旋转
+                    window._earthDragStart = {x: midClickX, y: midClickY};
+                    pinchStartTime = currentTime - 2000;
+                }
+                
+                // 显示特殊的地球交互指示器
                 ctx.beginPath();
-                ctx.arc(midDispX, midDispY, 20, -Math.PI/2, -Math.PI/2 + progress * 2 * Math.PI);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 3;
-                ctx.stroke();
+                ctx.arc(midDispX, midDispY, 15, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.6)'; // 青色表示地球交互
+                ctx.fill();
+            }
+            // 不是地球交互，检查是否需要进入拖拽模式
+            else if (!isDragging && (currentTime - pinchStartTime > 3000)) {
+                // 捏合超过3秒，进入拖拽模式
+                isDragging = true;
+                dragElement = window._lastPinchElement;
+                triggerDragStart(midClickX, midClickY);
+            }
+            // 如果已经在拖拽模式，处理移动
+            else if (isDragging) {
+                // 处理拖拽移动
+                triggerDragMove(midClickX, midClickY);
+            }
+            
+            // 显示倒计时进度圈（只在未进入拖拽模式且非地球交互时显示）
+            if (!isDragging && !window._isEarthInteraction) {
+                const elapsedTime = currentTime - pinchStartTime;
+                const progress = Math.min(elapsedTime / 3000, 1);
+                
+                if (progress < 1) {
+                    ctx.beginPath();
+                    ctx.arc(midDispX, midDispY, 20, -Math.PI/2, -Math.PI/2 + progress * 2 * Math.PI);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
             }
         }
     } else {
         // 如果之前是捏合状态，现在松开了
         if (isPinching) {
-            if (isDragging) {
+            if (window._isEarthInteraction) {
+                console.log('地球交互结束');
+                window._isEarthInteraction = false;
+                window._earthDragStart = null;
+            } else if (isDragging) {
                 // 结束拖拽
                 console.log('捏合手势结束，结束拖拽');
                 triggerDragEnd(midClickX, midClickY);
@@ -341,7 +371,22 @@ function checkPinchGesture(landmarks) {
     }
 }
 
-// 触发鼠标按下事件
+// 检测是否点击在THREE.js的地球容器上
+function isClickOnEarthContainer(element) {
+    // 向上查找父元素，检查是否是地球容器
+    let currentElement = element;
+    while (currentElement) {
+        if (currentElement.id === 'earth-container' || 
+            (currentElement.tagName === 'CANVAS' && currentElement.parentElement && 
+             currentElement.parentElement.id === 'earth-container')) {
+            return true;
+        }
+        currentElement = currentElement.parentElement;
+    }
+    return false;
+}
+
+// 修改 triggerMouseDown 函数
 function triggerMouseDown(x, y) {
     console.log('触发鼠标按下事件:', x, y);
     
@@ -350,6 +395,15 @@ function triggerMouseDown(x, y) {
     
     // 获取点击位置的元素
     const element = document.elementFromPoint(x, y);
+    
+    // 检查是否点击在地球容器上
+    if (element && isClickOnEarthContainer(element)) {
+        console.log('点击在地球上，将通过THREE.js处理');
+        window._isEarthInteraction = true; // 标记为地球交互
+        // 仍然保存位置以便在松开时使用
+        window._lastPinchPosition = {x, y};
+        return; // 不创建鼠标事件，让THREE.js的控制器处理
+    }
     
     // 如果找到元素，触发鼠标按下事件
     if (element) {
@@ -371,6 +425,7 @@ function triggerMouseDown(x, y) {
             // 保存当前元素，以便在松开时使用
             window._lastPinchElement = element;
             window._lastPinchPosition = {x, y};
+            window._isEarthInteraction = false; // 标记为非地球交互
         } catch (error) {
             console.error('触发鼠标按下事件失败:', error);
         }
@@ -379,12 +434,18 @@ function triggerMouseDown(x, y) {
     }
 }
 
-// 触发鼠标松开事件
+// 修改 triggerMouseUp 函数
 function triggerMouseUp(x, y) {
     console.log('触发鼠标松开事件:', x, y);
     
     // 创建点击完成效果
     createClickEffect(x, y, 'rgba(0, 255, 100, 0.5)'); // 使用绿色表示松开状态
+    
+    // 如果是地球交互，直接返回
+    if (window._isEarthInteraction) {
+        window._isEarthInteraction = false;
+        return;
+    }
     
     // 获取之前按下时的元素和位置
     const element = window._lastPinchElement;
@@ -1017,10 +1078,12 @@ function createVirtualEarth() {
 
     // 创建场景
     const scene = new THREE.Scene();
+    earthScene = scene;
     
     // 设置相机
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
     camera.position.z = 5;
+    earthCamera = camera;
     
     // 创建渲染器
     const renderer = new THREE.WebGLRenderer({ 
@@ -1092,6 +1155,7 @@ function createVirtualEarth() {
     
     const earth = new THREE.Mesh(earthGeometry, earthMaterial);
     scene.add(earth);
+    earthObj = earth; // 保存地球引用
     
     // 添加云层
     const cloudGeometry = new THREE.SphereGeometry(1.02, 64, 64);
@@ -1104,6 +1168,7 @@ function createVirtualEarth() {
     
     const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
     scene.add(clouds);
+    cloudsObj = clouds; // 保存云层引用
     
     // 添加轨道控制器，让用户可以旋转和缩放场景
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -1112,14 +1177,17 @@ function createVirtualEarth() {
     controls.screenSpacePanning = false;
     controls.minDistance = 1.5;
     controls.maxDistance = 15;
+    controls.enableRotate = true;
+    controls.rotateSpeed = 1.0; // 增加旋转速度
+    earthControls = controls; // 保存控制器引用
     
     // 动画函数
     function animate() {
         requestAnimationFrame(animate);
         
-        // 地球自转
-        earth.rotation.y += 0.0005;
-        clouds.rotation.y += 0.0007;
+        // 地球自转 - 进一步降低自转速度
+        earth.rotation.y += 0.0001; // 从0.0002再降低到0.0001
+        clouds.rotation.y += 0.00015; // 从0.0003再降低到0.00015
         
         controls.update();
         renderer.render(scene, camera);
@@ -1146,6 +1214,25 @@ function createVirtualEarth() {
         spaceToggleSwitch.addEventListener('click', () => {
             setTimeout(handleResize, 100); // 给DOM一点时间来更新
         });
+    }
+}
+
+// 添加直接控制地球旋转的函数
+function rotateEarth(startX, startY, currentX, currentY) {
+    if (!earthObj) return;
+    
+    // 计算拖动距离并转换为旋转角度
+    const deltaX = currentX - startX;
+    const deltaY = currentY - startY;
+    
+    // 直接控制地球旋转 - 进一步降低旋转速度
+    earthObj.rotation.y += deltaX * 0.001; // 从0.003降低到0.001
+    earthObj.rotation.x += deltaY * 0.001; // 从0.003降低到0.001
+    
+    // 同步云层旋转
+    if (cloudsObj) {
+        cloudsObj.rotation.y = earthObj.rotation.y;
+        cloudsObj.rotation.x = earthObj.rotation.x;
     }
 }
 
