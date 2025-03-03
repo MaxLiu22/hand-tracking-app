@@ -70,6 +70,9 @@ function onResults(results) {
         // 对每只检测到的手绘制骨骼
         results.multiHandLandmarks.forEach(landmarks => {
             drawHandSkeleton(landmarks);
+            
+            // 检测拇指和食指是否捏合
+            checkPinchGesture(landmarks);
         });
     } else {
         // 没有手被检测到
@@ -158,6 +161,65 @@ function drawHandSkeleton(landmarks) {
         ctx.beginPath();
         ctx.arc(x, y, nodeRadius, 0, 2 * Math.PI);
         ctx.fillStyle = 'rgba(255, 0, 0, 1.0)'; // 使用纯红色
+        ctx.fill();
+    }
+}
+
+// 检测拇指和食指是否捏合
+function checkPinchGesture(landmarks) {
+    // 拇指尖和食指尖的索引
+    const thumbTip = landmarks[4];
+    const indexTip = landmarks[8];
+    
+    // 计算视频在画布上的实际显示尺寸和位置
+    const videoRatio = video.videoWidth / video.videoHeight;
+    const canvasRatio = canvas.width / canvas.height;
+    
+    let displayWidth, displayHeight, offsetX, offsetY;
+    
+    if (videoRatio > canvasRatio) {
+        // 视频比画布更宽
+        displayHeight = canvas.height;
+        displayWidth = displayHeight * videoRatio;
+        offsetX = (canvas.width - displayWidth) / 2;
+        offsetY = 0;
+    } else {
+        // 视频比画布更窄或相等
+        displayWidth = canvas.width;
+        displayHeight = displayWidth / videoRatio;
+        offsetX = 0;
+        offsetY = (canvas.height - displayHeight) / 2;
+    }
+    
+    // 计算坐标转换函数
+    const transformX = (x) => offsetX + x * displayWidth;
+    const transformY = (y) => offsetY + y * displayHeight;
+    
+    // 转换坐标
+    const thumbX = transformX(thumbTip.x);
+    const thumbY = transformY(thumbTip.y);
+    const indexX = transformX(indexTip.x);
+    const indexY = transformY(indexTip.y);
+    
+    // 计算两点之间的距离
+    const distance = Math.sqrt(
+        Math.pow(thumbX - indexX, 2) + 
+        Math.pow(thumbY - indexY, 2)
+    );
+    
+    // 捏合阈值 - 可以根据需要调整
+    const pinchThreshold = 50; // 从40像素调整为50像素
+    
+    // 如果距离小于阈值，则认为是捏合手势
+    if (distance < pinchThreshold) {
+        // 在拇指和食指之间绘制一个半透明蓝色圆点
+        const midX = (thumbX + indexX) / 2;
+        const midY = (thumbY + indexY) / 2;
+        
+        // 绘制蓝色圆点
+        ctx.beginPath();
+        ctx.arc(midX, midY, 15, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(0, 100, 255, 0.6)'; // 半透明蓝色
         ctx.fill();
     }
 }
