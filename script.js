@@ -797,6 +797,145 @@ function createSidebar() {
     document.body.appendChild(sidebar);
 }
 
+// 创建虚拟宇宙和地球
+function createVirtualEarth() {
+    const container = document.getElementById('earth-container');
+    if (!container) return;
+
+    // 创建场景
+    const scene = new THREE.Scene();
+    
+    // 设置相机
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.z = 5;
+    
+    // 创建渲染器
+    const renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: true,
+        logarithmicDepthBuffer: true // 提高深度缓冲精度，防止渲染错误
+    });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setClearColor(0x000000, 0); // 透明背景
+    renderer.setPixelRatio(window.devicePixelRatio); // 适应高分辨率屏幕
+    container.appendChild(renderer.domElement);
+
+    // 设置渲染器的 DOM 元素样式
+    renderer.domElement.style.borderRadius = '8px'; // 匹配 Space 组件的圆角
+    renderer.domElement.style.overflow = 'hidden'; // 防止内容溢出
+    
+    // 添加环境光
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    
+    // 添加平行光（模拟太阳光）
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 3, 5);
+    scene.add(directionalLight);
+    
+    // 创建星空背景
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 2000; // 增加星星数量，使星空更密集
+    const starPositions = new Float32Array(starCount * 3);
+    
+    for (let i = 0; i < starCount; i++) {
+        const i3 = i * 3;
+        // 在球面上随机分布星星，减小半径使其看起来更像组件内的背景
+        const radius = 50 + Math.random() * 30; // 减小半径范围
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        
+        starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+        starPositions[i3+1] = radius * Math.sin(phi) * Math.sin(theta);
+        starPositions[i3+2] = radius * Math.cos(phi);
+    }
+    
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.15, // 增大星星大小，让它们更明显
+        sizeAttenuation: true // 确保远处的星星看起来更小
+    });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+    
+    // 创建地球
+    const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
+    
+    // 加载地球纹理
+    const textureLoader = new THREE.TextureLoader();
+    const earthTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
+    const earthBumpMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg');
+    const earthSpecMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg');
+    
+    const earthMaterial = new THREE.MeshPhongMaterial({
+        map: earthTexture,
+        bumpMap: earthBumpMap,
+        bumpScale: 0.05,
+        specularMap: earthSpecMap,
+        specular: new THREE.Color('grey'),
+        shininess: 10
+    });
+    
+    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    scene.add(earth);
+    
+    // 添加云层
+    const cloudGeometry = new THREE.SphereGeometry(1.02, 64, 64);
+    const cloudTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_2048.jpg');
+    const cloudMaterial = new THREE.MeshPhongMaterial({
+        map: cloudTexture,
+        transparent: true,
+        opacity: 0.4
+    });
+    
+    const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+    scene.add(clouds);
+    
+    // 添加轨道控制器，让用户可以旋转和缩放场景
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.screenSpacePanning = false;
+    controls.minDistance = 1.5;
+    controls.maxDistance = 15;
+    
+    // 动画函数
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        // 地球自转
+        earth.rotation.y += 0.0005;
+        clouds.rotation.y += 0.0007;
+        
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    
+    // 开始动画
+    animate();
+    
+    // 处理窗口大小变化
+    function handleResize() {
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+    }
+    
+    window.addEventListener('resize', handleResize);
+    
+    // 当space-component变为可见时，触发一次resize以适应容器
+    const spaceToggleSwitch = document.getElementById('space-toggle');
+    if (spaceToggleSwitch) {
+        spaceToggleSwitch.addEventListener('click', () => {
+            setTimeout(handleResize, 100); // 给DOM一点时间来更新
+        });
+    }
+}
+
 // 启动应用
 async function startApp() {
     try {
@@ -822,6 +961,9 @@ async function startApp() {
         
         // 创建侧边导航面板
         createSidebar();
+        
+        // 创建虚拟宇宙和地球
+        createVirtualEarth();
     } catch (error) {
         console.error("应用启动失败:", error);
         updateStatus("应用启动失败，请刷新页面重试");
