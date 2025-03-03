@@ -794,6 +794,75 @@ function createSidebar() {
     spaceControlItem.appendChild(spaceToggleSwitch);
     sidebar.appendChild(spaceControlItem);
     
+    // 创建录屏控制项
+    const videoControlItem = document.createElement('div');
+    videoControlItem.style.display = 'flex';
+    videoControlItem.style.justifyContent = 'space-between';
+    videoControlItem.style.alignItems = 'center';
+    videoControlItem.style.padding = '10px 0';
+    videoControlItem.style.borderTop = '1px solid rgba(0, 0, 0, 0.1)';
+    videoControlItem.style.marginTop = '10px';
+    
+    // 录屏标签
+    const videoLabel = document.createElement('label');
+    videoLabel.textContent = '摄像头视频';
+    videoLabel.style.fontSize = '22px';
+    videoLabel.style.fontWeight = '500';
+    videoLabel.style.color = '#1d1d1f';
+    
+    // 创建录屏开关
+    const videoToggleSwitch = document.createElement('div');
+    videoToggleSwitch.id = 'video-toggle';
+    videoToggleSwitch.className = 'toggle-switch';
+    videoToggleSwitch.style.position = 'relative';
+    videoToggleSwitch.style.width = '80px';
+    videoToggleSwitch.style.height = '50px';
+    videoToggleSwitch.style.backgroundColor = '#34c759'; // 默认是绿色（开启状态）
+    videoToggleSwitch.style.borderRadius = '25px';
+    videoToggleSwitch.style.cursor = 'pointer';
+    videoToggleSwitch.style.transition = 'background-color 0.3s';
+    
+    // 创建录屏开关滑块
+    const videoSlider = document.createElement('div');
+    videoSlider.style.position = 'absolute';
+    videoSlider.style.top = '3px';
+    videoSlider.style.left = '34px'; // 默认在右侧（开启状态）
+    videoSlider.style.width = '44px';
+    videoSlider.style.height = '44px';
+    videoSlider.style.borderRadius = '50%';
+    videoSlider.style.backgroundColor = 'white';
+    videoSlider.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.2)';
+    videoSlider.style.transition = 'left 0.3s';
+    videoToggleSwitch.appendChild(videoSlider);
+    
+    // 录屏组件的显示/隐藏状态
+    let videoVisible = true;
+    const inputVideo = document.getElementById('input-video');
+    
+    // 添加录屏开关点击事件
+    videoToggleSwitch.addEventListener('click', () => {
+        videoVisible = !videoVisible;
+        
+        // 更新开关外观
+        if (videoVisible) {
+            videoToggleSwitch.style.backgroundColor = '#34c759'; // 绿色
+            videoSlider.style.left = '34px';
+            if (inputVideo) {
+                inputVideo.style.display = 'block';
+            }
+        } else {
+            videoToggleSwitch.style.backgroundColor = '#e9e9ea'; // 灰色
+            videoSlider.style.left = '3px';
+            if (inputVideo) {
+                inputVideo.style.display = 'none';
+            }
+        }
+    });
+    
+    videoControlItem.appendChild(videoLabel);
+    videoControlItem.appendChild(videoToggleSwitch);
+    sidebar.appendChild(videoControlItem);
+    
     document.body.appendChild(sidebar);
 }
 
