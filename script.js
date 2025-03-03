@@ -73,7 +73,7 @@ function onResults(results) {
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             // 有手被检测到
             if (!lastHandsDetected) {
-                updateStatus("已检测到人手");
+                updateStatus("Hand Detected");
                 lastHandsDetected = true;
             }
             
@@ -88,13 +88,13 @@ function onResults(results) {
         } else {
             // 没有手被检测到
             if (lastHandsDetected) {
-                updateStatus("没有检测到人手");
+                updateStatus("No Hand Detected");
                 lastHandsDetected = false;
             }
             
             // 如果手部消失但仍处于捏合状态，触发松开
             if (isPinching) {
-                console.log('手部消失，结束当前手势');
+                console.log('Hand disappeared, ending current gesture');
                 if (isDragging) {
                     // 结束任何活跃的拖拽操作
                     const lastPos = window._lastPinchPosition || {x: 0, y: 0};
@@ -291,7 +291,7 @@ function checkPinchGesture(landmarks) {
         
         // 如果是刚开始捏合
         if (!isPinching) {
-            console.log('检测到捏合手势，触发鼠标按下事件', {x: midClickX, y: midClickY});
+            console.log('Pinch gesture detected, triggering mouse down event', {x: midClickX, y: midClickY});
             // 记录捏合开始时间
             pinchStartTime = currentTime;
             // 触发鼠标按下事件在镜像位置
@@ -352,18 +352,18 @@ function checkPinchGesture(landmarks) {
         // 如果之前是捏合状态，现在松开了
         if (isPinching) {
             if (window._isEarthInteraction) {
-                console.log('地球交互结束');
+                console.log('Earth interaction ended');
                 window._isEarthInteraction = false;
                 window._earthDragStart = null;
             } else if (isDragging) {
                 // 结束拖拽
-                console.log('捏合手势结束，结束拖拽');
+                console.log('Pinch gesture ended, ending drag operation');
                 triggerDragEnd(midClickX, midClickY);
                 isDragging = false;
                 dragElement = null;
             } else {
                 // 普通点击结束
-                console.log('捏合手势结束，触发鼠标松开事件');
+                console.log('Pinch gesture ended, triggering mouse up event');
                 triggerMouseUp(midClickX, midClickY);
             }
             isPinching = false;
@@ -388,7 +388,7 @@ function isClickOnEarthContainer(element) {
 
 // 修改 triggerMouseDown 函数
 function triggerMouseDown(x, y) {
-    console.log('触发鼠标按下事件:', x, y);
+    console.log('Triggering mouse down event:', x, y);
     
     // 创建点击反馈效果
     createClickEffect(x, y, 'rgba(0, 100, 255, 0.3)'); // 使用较浅的蓝色表示按下状态
@@ -398,7 +398,7 @@ function triggerMouseDown(x, y) {
     
     // 检查是否点击在地球容器上
     if (element && isClickOnEarthContainer(element)) {
-        console.log('点击在地球上，将通过THREE.js处理');
+        console.log('Clicked on Earth, will be handled by THREE.js');
         window._isEarthInteraction = true; // 标记为地球交互
         // 仍然保存位置以便在松开时使用
         window._lastPinchPosition = {x, y};
@@ -407,7 +407,7 @@ function triggerMouseDown(x, y) {
     
     // 如果找到元素，触发鼠标按下事件
     if (element) {
-        console.log('找到元素:', element.tagName, element.className);
+        console.log('Element found:', element.tagName, element.className);
         
         // 创建鼠标按下事件
         const mouseDownEvent = new MouseEvent('mousedown', {
@@ -420,23 +420,23 @@ function triggerMouseDown(x, y) {
         
         try {
             element.dispatchEvent(mouseDownEvent);
-            console.log(`触发鼠标按下事件成功 at (${x}, ${y}) on:`, element);
+            console.log(`Triggering mouse down event successfully at (${x}, ${y}) on:`, element);
             
             // 保存当前元素，以便在松开时使用
             window._lastPinchElement = element;
             window._lastPinchPosition = {x, y};
             window._isEarthInteraction = false; // 标记为非地球交互
         } catch (error) {
-            console.error('触发鼠标按下事件失败:', error);
+            console.error('Triggering mouse down event failed:', error);
         }
     } else {
-        console.log('在坐标点找不到元素:', x, y);
+        console.log('Element not found at coordinates:', x, y);
     }
 }
 
 // 修改 triggerMouseUp 函数
 function triggerMouseUp(x, y) {
-    console.log('触发鼠标松开事件:', x, y);
+    console.log('Triggering mouse up event:', x, y);
     
     // 创建点击完成效果
     createClickEffect(x, y, 'rgba(0, 255, 100, 0.5)'); // 使用绿色表示松开状态
@@ -453,7 +453,7 @@ function triggerMouseUp(x, y) {
     
     // 如果找到元素，触发鼠标松开和点击事件
     if (element) {
-        console.log('在元素上完成点击:', element.tagName, element.className);
+        console.log('Completed click on:', element.tagName, element.className);
         
         // 创建鼠标松开事件
         const mouseUpEvent = new MouseEvent('mouseup', {
@@ -476,20 +476,20 @@ function triggerMouseUp(x, y) {
         try {
             // 先触发鼠标松开事件
             element.dispatchEvent(mouseUpEvent);
-            console.log(`触发鼠标松开事件成功 at (${lastPosition.x}, ${lastPosition.y}) on:`, element);
+            console.log(`Triggering mouse up event successfully at (${lastPosition.x}, ${lastPosition.y}) on:`, element);
             
             // 然后触发点击事件
             element.dispatchEvent(clickEvent);
-            console.log(`触发点击事件成功 at (${lastPosition.x}, ${lastPosition.y}) on:`, element);
+            console.log(`Triggering click event successfully at (${lastPosition.x}, ${lastPosition.y}) on:`, element);
             
             // 清除缓存的元素和位置
             window._lastPinchElement = null;
             window._lastPinchPosition = null;
         } catch (error) {
-            console.error('触发鼠标松开或点击事件失败:', error);
+            console.error('Triggering mouse up or click event failed:', error);
         }
     } else {
-        console.log('完成点击但找不到之前的元素');
+        console.log('Completed click but no previous element');
     }
 }
 
@@ -543,7 +543,7 @@ function createClickEffect(x, y, color = 'rgba(255, 255, 255, 0.5)') {
 
 // 初始化摄像头
 async function setupCamera() {
-    updateStatus("正在启动摄像头...");
+    updateStatus("Starting camera...");
     
     // 请求摄像头权限
     try {
@@ -566,8 +566,8 @@ async function setupCamera() {
             };
         });
     } catch (error) {
-        console.error("无法访问摄像头:", error);
-        updateStatus("无法访问摄像头，请确保允许权限");
+        console.error("Unable to access camera:", error);
+        updateStatus("Unable to access camera, please ensure permission");
         throw error;
     }
 }
@@ -654,7 +654,7 @@ function createCalculator() {
         
         // 确保按钮始终有点击响应
         button.addEventListener('click', (e) => {
-            console.log('计算器按钮直接点击:', btn);
+            console.log('Calculator button clicked directly:', btn);
             // 现有逻辑在buttonGrid的事件委托中处理
         });
         
@@ -681,7 +681,7 @@ function createCalculator() {
             // 提高拖动时的z-index，确保在拖动时位于顶层
             calculator.style.zIndex = '1001';
             
-            console.log('开始拖动计算器');
+            console.log('Starting calculator drag');
             
             // 防止文本选择等默认行为
             e.preventDefault();
@@ -711,7 +711,7 @@ function createCalculator() {
             isCalcDragging = false;
             // 恢复原来的z-index
             calculator.style.zIndex = '1000';
-            console.log('停止拖动计算器');
+            console.log('Stopping calculator drag');
         }
     });
 
@@ -721,7 +721,7 @@ function createCalculator() {
             isCalcDragging = false;
             // 恢复原来的z-index
             calculator.style.zIndex = '1000';
-            console.log('停止拖动计算器 (离开窗口)');
+            console.log('Stopping calculator drag (leaving window)');
         }
     });
     
@@ -855,7 +855,7 @@ function createSidebar() {
     
     // 添加标题
     const title = document.createElement('h1');
-    title.textContent = '手势控制网页应用';
+    title.textContent = 'Gesture Control Web Application';
     title.style.fontSize = '18px';
     title.style.fontWeight = '600';
     title.style.margin = '0';
@@ -873,7 +873,7 @@ function createSidebar() {
     
     // 计算器标签
     const label = document.createElement('label');
-    label.textContent = '计算器';
+    label.textContent = 'Calculator';
     label.style.fontSize = '22px';
     label.style.fontWeight = '500';
     label.style.color = '#1d1d1f';
@@ -1010,7 +1010,7 @@ function createSidebar() {
     
     // 录屏标签
     const videoLabel = document.createElement('label');
-    videoLabel.textContent = '摄像头视频';
+    videoLabel.textContent = 'Camera Video';
     videoLabel.style.fontSize = '22px';
     videoLabel.style.fontWeight = '500';
     videoLabel.style.color = '#1d1d1f';
@@ -1242,7 +1242,7 @@ async function startApp() {
         await setupCamera();
         initializeHands();
         
-        updateStatus("初始化中...");
+        updateStatus("Initializing...");
         
         // 创建摄像头实例
         camera = new Camera(video, {
@@ -1254,7 +1254,7 @@ async function startApp() {
         });
         
         await camera.start();
-        updateStatus("没有检测到人手");
+        updateStatus("No Hand Detected");
         
         // 创建计算器
         createCalculator();
@@ -1265,8 +1265,8 @@ async function startApp() {
         // 创建虚拟宇宙和地球
         createVirtualEarth();
     } catch (error) {
-        console.error("应用启动失败:", error);
-        updateStatus("应用启动失败，请刷新页面重试");
+        console.error("Application start failed:", error);
+        updateStatus("Application start failed, please refresh the page");
     }
 }
 
@@ -1275,7 +1275,7 @@ window.addEventListener('load', startApp);
 
 // 触发拖拽开始
 function triggerDragStart(x, y) {
-    console.log('开始拖拽操作:', x, y);
+    console.log('Starting drag operation:', x, y);
     
     // 创建拖拽开始反馈效果
     createClickEffect(x, y, 'rgba(255, 100, 0, 0.5)'); // 橙色表示拖拽开始
@@ -1284,7 +1284,7 @@ function triggerDragStart(x, y) {
     window._dragStartPosition = {x, y};
     
     if (dragElement) {
-        console.log('拖拽元素:', dragElement.tagName, dragElement.className);
+        console.log('Dragging element:', dragElement.tagName, dragElement.className);
         
         // 如果元素有定位，保存其初始位置
         const style = window.getComputedStyle(dragElement);
@@ -1339,7 +1339,7 @@ function triggerDragMove(x, y) {
 
 // 触发拖拽结束
 function triggerDragEnd(x, y) {
-    console.log('结束拖拽操作:', x, y);
+    console.log('Ending drag operation:', x, y);
     
     // 创建拖拽结束反馈效果
     createClickEffect(x, y, 'rgba(100, 255, 100, 0.5)'); // 绿色表示拖拽结束
@@ -1357,7 +1357,7 @@ function triggerDragEnd(x, y) {
             y: parseInt(style.top) || 0
         };
         
-        console.log('拖拽结束，元素位置:', dragElement._dragOffset);
+        console.log('Drag ended, element position:', dragElement._dragOffset);
     }
     
     // 清除拖拽数据
