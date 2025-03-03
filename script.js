@@ -31,6 +31,9 @@ let hands;
 let camera;
 let lastHandsDetected = false;
 let isPinching = false; // 全局变量，用于跟踪捏合状态
+let pinchStartTime = 0; // 记录捏合开始的时间
+let isDragging = false; // 是否处于拖拽模式
+let dragElement = null; // 当前被拖拽的元素
 
 function initializeHands() {
     hands = new Hands({
@@ -53,36 +56,57 @@ function initializeHands() {
 
 // 处理 MediaPipe 手部检测结果
 function onResults(results) {
-    // 不再使用视频尺寸作为判断依据，而是根据窗口大小
-    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
-        setupCanvas();
-    }
-    
-    // 清空画布
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // 检查是否检测到手
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        // 有手被检测到
-        if (!lastHandsDetected) {
-            updateStatus("已检测到人手");
-            lastHandsDetected = true;
+    // 使用requestAnimationFrame确保UI更新不会阻塞
+    requestAnimationFrame(() => {
+        // 不再使用视频尺寸作为判断依据，而是根据窗口大小
+        if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+            setupCanvas();
         }
         
-        // 对每只检测到的手绘制骨骼
-        results.multiHandLandmarks.forEach(landmarks => {
-            drawHandSkeleton(landmarks);
+        // 清空画布
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 检查是否检测到手
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            // 有手被检测到
+            if (!lastHandsDetected) {
+                updateStatus("已检测到人手");
+                lastHandsDetected = true;
+            }
             
-            // 检测拇指和食指是否捏合
-            checkPinchGesture(landmarks);
-        });
-    } else {
-        // 没有手被检测到
-        if (lastHandsDetected) {
-            updateStatus("没有检测到人手");
-            lastHandsDetected = false;
+            // 对每只检测到的手绘制骨骼
+            results.multiHandLandmarks.forEach(landmarks => {
+                // 无论是否处于拖拽模式，都绘制骨骼
+                drawHandSkeleton(landmarks);
+                
+                // 检测拇指和食指是否捏合
+                checkPinchGesture(landmarks);
+            });
+        } else {
+            // 没有手被检测到
+            if (lastHandsDetected) {
+                updateStatus("没有检测到人手");
+                lastHandsDetected = false;
+            }
+            
+            // 如果手部消失但仍处于捏合状态，触发松开
+            if (isPinching) {
+                console.log('手部消失，结束当前手势');
+                if (isDragging) {
+                    // 结束任何活跃的拖拽操作
+                    const lastPos = window._lastPinchPosition || {x: 0, y: 0};
+                    triggerDragEnd(lastPos.x, lastPos.y);
+                    isDragging = false;
+                    dragElement = null;
+                } else {
+                    // 结束普通点击
+                    const lastPos = window._lastPinchPosition || {x: 0, y: 0};
+                    triggerMouseUp(lastPos.x, lastPos.y);
+                }
+                isPinching = false;
+            }
         }
-    }
+    });
 }
 
 // 绘制手部骨骼
@@ -235,25 +259,83 @@ function checkPinchGesture(landmarks) {
         const midDispX = (thumbDispX + indexDispX) / 2;
         const midDispY = (thumbDispY + indexDispY) / 2;
         
-        // 绘制蓝色圆点在非镜像位置
+        // 当前时间
+        const currentTime = Date.now();
+        
+        // 在任何操作之前，先绘制捏合效果点
+        // 根据状态使用不同颜色
+        let pointColor;
+        let pointSize = 15;
+        
+        if (isDragging) {
+            // 拖拽模式 - 橙色
+            pointColor = 'rgba(255, 100, 0, 0.6)';
+            pointSize = 18; // 稍微大一点以示区别
+        } else if (currentTime - pinchStartTime > 3000) {
+            // 即将进入拖拽模式 - 橙红色
+            pointColor = 'rgba(255, 80, 0, 0.6)';
+            pointSize = 16;
+        } else {
+            // 普通捏合 - 蓝色
+            pointColor = 'rgba(0, 100, 255, 0.6)';
+        }
+        
+        // 绘制圆点
         ctx.beginPath();
-        ctx.arc(midDispX, midDispY, 15, 0, 2 * Math.PI);
-        ctx.fillStyle = 'rgba(0, 100, 255, 0.6)'; // 半透明蓝色
+        ctx.arc(midDispX, midDispY, pointSize, 0, 2 * Math.PI);
+        ctx.fillStyle = pointColor;
         ctx.fill();
         
-        // 如果是刚开始捏合，触发鼠标按下事件（使用镜像坐标）
+        // 如果是刚开始捏合
         if (!isPinching) {
             console.log('检测到捏合手势，触发鼠标按下事件', {x: midClickX, y: midClickY});
+            // 记录捏合开始时间
+            pinchStartTime = currentTime;
             // 触发鼠标按下事件在镜像位置
             triggerMouseDown(midClickX, midClickY);
             isPinching = true;
+            isDragging = false;  // 重置拖拽状态
+        } 
+        // 如果已经在捏合，检查是否需要进入拖拽模式
+        else if (!isDragging && (currentTime - pinchStartTime > 4000)) {
+            // 捏合超过4秒，进入拖拽模式
+            isDragging = true;
+            dragElement = window._lastPinchElement;
+            triggerDragStart(midClickX, midClickY);
+        }
+        // 如果已经在拖拽模式，处理移动
+        else if (isDragging) {
+            // 处理拖拽移动
+            triggerDragMove(midClickX, midClickY);
+        }
+        
+        // 显示倒计时进度圈（只在未进入拖拽模式时显示）
+        if (!isDragging) {
+            const elapsedTime = currentTime - pinchStartTime;
+            const progress = Math.min(elapsedTime / 4000, 1);
+            
+            if (progress < 1) {
+                ctx.beginPath();
+                ctx.arc(midDispX, midDispY, 20, -Math.PI/2, -Math.PI/2 + progress * 2 * Math.PI);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
         }
     } else {
-        // 如果之前是捏合状态，现在松开了，触发鼠标松开和点击事件
+        // 如果之前是捏合状态，现在松开了
         if (isPinching) {
-            console.log('捏合手势结束，触发鼠标松开事件');
-            // 触发鼠标松开和点击事件
-            triggerMouseUp(midClickX, midClickY);
+            if (isDragging) {
+                // 结束拖拽
+                console.log('捏合手势结束，结束拖拽');
+                triggerDragEnd(midClickX, midClickY);
+                isDragging = false;
+                dragElement = null;
+            } else {
+                // 普通点击结束
+                console.log('捏合手势结束，触发鼠标松开事件');
+                triggerMouseUp(midClickX, midClickY);
+            }
             isPinching = false;
         }
     }
@@ -439,7 +521,7 @@ function createCalculator() {
     calculator.style.right = '20px';
     calculator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
     calculator.style.borderRadius = '15px'; // 增加圆角
-    calculator.style.padding = '25px'; // 增加内边距
+    calculator.style.padding = '40px'; // 从25px增加到40px，使黑色区域更宽
     calculator.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
     calculator.style.zIndex = '1000'; // 这个值小于画布的z-index
     calculator.style.width = '500px'; // 从250px修改为500px，增加到两倍大
@@ -520,20 +602,20 @@ function createCalculator() {
     
     calculator.appendChild(buttonGrid);
     
-    // 添加拖动功能
-    let isDragging = false;
-    let dragOffsetX, dragOffsetY;
+    // 添加拖动功能 - 重命名变量以避免与手势拖拽的冲突
+    let isCalcDragging = false; // 更改变量名称
+    let calcDragOffsetX, calcDragOffsetY;
 
     // 鼠标按下事件 - 开始拖动
     calculator.addEventListener('mousedown', (e) => {
         // 只有当点击的不是按钮时才允许拖动
         if (!e.target.classList.contains('calc-button')) {
-            isDragging = true;
+            isCalcDragging = true; // 使用新变量名
             
             // 计算鼠标位置与计算器左上角的偏移
             const rect = calculator.getBoundingClientRect();
-            dragOffsetX = e.clientX - rect.left;
-            dragOffsetY = e.clientY - rect.top;
+            calcDragOffsetX = e.clientX - rect.left;
+            calcDragOffsetY = e.clientY - rect.top;
             
             // 提高拖动时的z-index，确保在拖动时位于顶层
             calculator.style.zIndex = '1001';
@@ -547,22 +629,25 @@ function createCalculator() {
 
     // 鼠标移动事件 - 拖动中
     document.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            // 计算新位置
-            const newLeft = e.clientX - dragOffsetX;
-            const newTop = e.clientY - dragOffsetY;
-            
-            // 应用新位置
-            calculator.style.right = 'auto'; // 取消right定位，改为使用left
-            calculator.style.left = `${newLeft}px`;
-            calculator.style.top = `${newTop}px`;
+        if (isCalcDragging) { // 使用新变量名
+            // 使用requestAnimationFrame确保平滑渲染且不阻塞主线程
+            requestAnimationFrame(() => {
+                // 计算新位置
+                const newLeft = e.clientX - calcDragOffsetX;
+                const newTop = e.clientY - calcDragOffsetY;
+                
+                // 应用新位置
+                calculator.style.right = 'auto'; // 取消right定位，改为使用left
+                calculator.style.left = `${newLeft}px`;
+                calculator.style.top = `${newTop}px`;
+            });
         }
     });
 
     // 鼠标释放事件 - 结束拖动
     document.addEventListener('mouseup', () => {
-        if (isDragging) {
-            isDragging = false;
+        if (isCalcDragging) { // 使用新变量名
+            isCalcDragging = false;
             // 恢复原来的z-index
             calculator.style.zIndex = '1000';
             console.log('停止拖动计算器');
@@ -571,8 +656,8 @@ function createCalculator() {
 
     // 确保拖动离开窗口时也能停止
     document.addEventListener('mouseleave', () => {
-        if (isDragging) {
-            isDragging = false;
+        if (isCalcDragging) { // 使用新变量名
+            isCalcDragging = false;
             // 恢复原来的z-index
             calculator.style.zIndex = '1000';
             console.log('停止拖动计算器 (离开窗口)');
@@ -1099,4 +1184,95 @@ async function startApp() {
 }
 
 // 启动应用
-window.addEventListener('load', startApp); 
+window.addEventListener('load', startApp);
+
+// 触发拖拽开始
+function triggerDragStart(x, y) {
+    console.log('开始拖拽操作:', x, y);
+    
+    // 创建拖拽开始反馈效果
+    createClickEffect(x, y, 'rgba(255, 100, 0, 0.5)'); // 橙色表示拖拽开始
+    
+    // 保存初始拖拽位置
+    window._dragStartPosition = {x, y};
+    
+    if (dragElement) {
+        console.log('拖拽元素:', dragElement.tagName, dragElement.className);
+        
+        // 如果元素有定位，保存其初始位置
+        const style = window.getComputedStyle(dragElement);
+        const position = style.position;
+        
+        // 如果元素没有定位或是static，改为relative
+        if (position === 'static' || position === '') {
+            dragElement.style.position = 'relative';
+            dragElement._originalPosition = position;
+            dragElement._dragOffset = {x: 0, y: 0};
+        } 
+        // 如果已经有绝对/相对定位，记录原始offset
+        else if (position === 'absolute') {
+            dragElement._dragOffset = {
+                x: parseInt(style.left) || 0,
+                y: parseInt(style.top) || 0
+            };
+        } 
+        else if (position === 'relative') {
+            dragElement._dragOffset = {
+                x: parseInt(style.left) || 0,
+                y: parseInt(style.top) || 0
+            };
+        }
+        
+        // 应用拖拽样式
+        dragElement.style.cursor = 'grabbing';
+        dragElement.style.userSelect = 'none';
+        dragElement._originalZIndex = dragElement.style.zIndex;
+        dragElement.style.zIndex = '1500'; // 确保拖拽时元素在最上层
+    }
+}
+
+// 触发拖拽移动
+function triggerDragMove(x, y) {
+    if (!dragElement || !window._dragStartPosition) return;
+    
+    // 计算移动的距离
+    const deltaX = x - window._dragStartPosition.x;
+    const deltaY = y - window._dragStartPosition.y;
+    
+    // 应用移动
+    const newX = dragElement._dragOffset.x + deltaX;
+    const newY = dragElement._dragOffset.y + deltaY;
+    
+    // 更新元素位置，使用requestAnimationFrame确保平滑渲染
+    requestAnimationFrame(() => {
+        dragElement.style.left = `${newX}px`;
+        dragElement.style.top = `${newY}px`;
+    });
+}
+
+// 触发拖拽结束
+function triggerDragEnd(x, y) {
+    console.log('结束拖拽操作:', x, y);
+    
+    // 创建拖拽结束反馈效果
+    createClickEffect(x, y, 'rgba(100, 255, 100, 0.5)'); // 绿色表示拖拽结束
+    
+    if (dragElement) {
+        // 恢复元素样式
+        dragElement.style.cursor = '';
+        dragElement.style.userSelect = '';
+        dragElement.style.zIndex = dragElement._originalZIndex || '';
+        
+        // 保存最终位置作为新的偏移
+        const style = window.getComputedStyle(dragElement);
+        dragElement._dragOffset = {
+            x: parseInt(style.left) || 0,
+            y: parseInt(style.top) || 0
+        };
+        
+        console.log('拖拽结束，元素位置:', dragElement._dragOffset);
+    }
+    
+    // 清除拖拽数据
+    window._dragStartPosition = null;
+} 
