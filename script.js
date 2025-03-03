@@ -855,7 +855,7 @@ function createSidebar() {
     
     // 添加标题
     const title = document.createElement('h1');
-    title.textContent = 'Gesture Control Web Application';
+    title.textContent = 'Gesture Control Web App';
     title.style.fontSize = '18px';
     title.style.fontWeight = '600';
     title.style.margin = '0';
@@ -1283,6 +1283,11 @@ function triggerDragStart(x, y) {
     // 保存初始拖拽位置
     window._dragStartPosition = {x, y};
     
+    // 如果dragElement为null但有_lastPinchElement，使用它
+    if (!dragElement && window._lastPinchElement) {
+        dragElement = window._lastPinchElement;
+    }
+    
     if (dragElement) {
         console.log('Dragging element:', dragElement.tagName, dragElement.className);
         
@@ -1297,7 +1302,7 @@ function triggerDragStart(x, y) {
             dragElement._dragOffset = {x: 0, y: 0};
         } 
         // 如果已经有绝对/相对定位，记录原始offset
-        else if (position === 'absolute') {
+        else if (position === 'absolute' || position === 'fixed') {
             dragElement._dragOffset = {
                 x: parseInt(style.left) || 0,
                 y: parseInt(style.top) || 0
@@ -1315,6 +1320,16 @@ function triggerDragStart(x, y) {
         dragElement.style.userSelect = 'none';
         dragElement._originalZIndex = dragElement.style.zIndex;
         dragElement.style.zIndex = '1500'; // 确保拖拽时元素在最上层
+        
+        // 确保元素位置已经设置好，防止第一次拖拽失败
+        if (!dragElement.style.left) {
+            dragElement.style.left = dragElement._dragOffset.x + 'px';
+        }
+        if (!dragElement.style.top) {
+            dragElement.style.top = dragElement._dragOffset.y + 'px';
+        }
+    } else {
+        console.warn('No element to drag found!');
     }
 }
 
