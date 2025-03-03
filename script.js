@@ -225,15 +225,15 @@ function checkPinchGesture(landmarks) {
     // 捏合阈值 - 可以根据需要调整
     const pinchThreshold = 50;
     
+    // 点击位置使用镜像坐标
+    const midClickX = (thumbClickX + indexClickX) / 2;
+    const midClickY = (thumbClickY + indexClickY) / 2;
+    
     // 如果距离小于阈值，则认为是捏合手势
     if (distance < pinchThreshold) {
         // 在拇指和食指之间绘制一个半透明蓝色圆点（使用非镜像坐标）
         const midDispX = (thumbDispX + indexDispX) / 2;
         const midDispY = (thumbDispY + indexDispY) / 2;
-        
-        // 点击位置使用镜像坐标
-        const midClickX = (thumbClickX + indexClickX) / 2;
-        const midClickY = (thumbClickY + indexClickY) / 2;
         
         // 绘制蓝色圆点在非镜像位置
         ctx.beginPath();
@@ -241,38 +241,40 @@ function checkPinchGesture(landmarks) {
         ctx.fillStyle = 'rgba(0, 100, 255, 0.6)'; // 半透明蓝色
         ctx.fill();
         
-        // 如果是刚开始捏合，触发点击事件（使用镜像坐标）
+        // 如果是刚开始捏合，触发鼠标按下事件（使用镜像坐标）
         if (!isPinching) {
-            console.log('检测到捏合手势，触发点击事件', {x: midClickX, y: midClickY});
-            // 触发鼠标点击事件在镜像位置
-            triggerMouseClick(midClickX, midClickY);
+            console.log('检测到捏合手势，触发鼠标按下事件', {x: midClickX, y: midClickY});
+            // 触发鼠标按下事件在镜像位置
+            triggerMouseDown(midClickX, midClickY);
             isPinching = true;
         }
     } else {
-        // 如果不是捏合状态，重置标志
+        // 如果之前是捏合状态，现在松开了，触发鼠标松开和点击事件
         if (isPinching) {
-            console.log('捏合手势结束');
+            console.log('捏合手势结束，触发鼠标松开事件');
+            // 触发鼠标松开和点击事件
+            triggerMouseUp(midClickX, midClickY);
+            isPinching = false;
         }
-        isPinching = false;
     }
 }
 
-// 触发鼠标点击事件
-function triggerMouseClick(x, y) {
-    console.log('尝试在坐标点击:', x, y);
+// 触发鼠标按下事件
+function triggerMouseDown(x, y) {
+    console.log('触发鼠标按下事件:', x, y);
     
     // 创建点击反馈效果
-    createClickEffect(x, y);
+    createClickEffect(x, y, 'rgba(0, 100, 255, 0.3)'); // 使用较浅的蓝色表示按下状态
     
-    // 获取点击位置的元素 - 直接点击该坐标处的元素
+    // 获取点击位置的元素
     const element = document.elementFromPoint(x, y);
     
-    // 如果找到元素，触发点击事件
+    // 如果找到元素，触发鼠标按下事件
     if (element) {
         console.log('找到元素:', element.tagName, element.className);
         
-        // 创建点击事件
-        const clickEvent = new MouseEvent('click', {
+        // 创建鼠标按下事件
+        const mouseDownEvent = new MouseEvent('mousedown', {
             bubbles: true,
             cancelable: true,
             view: window,
@@ -281,18 +283,75 @@ function triggerMouseClick(x, y) {
         });
         
         try {
-            element.dispatchEvent(clickEvent);
-            console.log(`触发点击事件成功 at (${x}, ${y}) on:`, element);
+            element.dispatchEvent(mouseDownEvent);
+            console.log(`触发鼠标按下事件成功 at (${x}, ${y}) on:`, element);
+            
+            // 保存当前元素，以便在松开时使用
+            window._lastPinchElement = element;
+            window._lastPinchPosition = {x, y};
         } catch (error) {
-            console.error('触发点击事件失败:', error);
+            console.error('触发鼠标按下事件失败:', error);
         }
     } else {
         console.log('在坐标点找不到元素:', x, y);
     }
 }
 
-// 创建点击效果
-function createClickEffect(x, y) {
+// 触发鼠标松开事件
+function triggerMouseUp(x, y) {
+    console.log('触发鼠标松开事件:', x, y);
+    
+    // 创建点击完成效果
+    createClickEffect(x, y, 'rgba(0, 255, 100, 0.5)'); // 使用绿色表示松开状态
+    
+    // 获取之前按下时的元素和位置
+    const element = window._lastPinchElement;
+    const lastPosition = window._lastPinchPosition || {x, y};
+    
+    // 如果找到元素，触发鼠标松开和点击事件
+    if (element) {
+        console.log('在元素上完成点击:', element.tagName, element.className);
+        
+        // 创建鼠标松开事件
+        const mouseUpEvent = new MouseEvent('mouseup', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: lastPosition.x,
+            clientY: lastPosition.y
+        });
+        
+        // 创建点击事件
+        const clickEvent = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: lastPosition.x,
+            clientY: lastPosition.y
+        });
+        
+        try {
+            // 先触发鼠标松开事件
+            element.dispatchEvent(mouseUpEvent);
+            console.log(`触发鼠标松开事件成功 at (${lastPosition.x}, ${lastPosition.y}) on:`, element);
+            
+            // 然后触发点击事件
+            element.dispatchEvent(clickEvent);
+            console.log(`触发点击事件成功 at (${lastPosition.x}, ${lastPosition.y}) on:`, element);
+            
+            // 清除缓存的元素和位置
+            window._lastPinchElement = null;
+            window._lastPinchPosition = null;
+        } catch (error) {
+            console.error('触发鼠标松开或点击事件失败:', error);
+        }
+    } else {
+        console.log('完成点击但找不到之前的元素');
+    }
+}
+
+// 创建点击效果 (添加颜色参数)
+function createClickEffect(x, y, color = 'rgba(255, 255, 255, 0.5)') {
     // 创建点击效果容器
     const clickEffect = document.createElement('div');
     clickEffect.style.position = 'fixed';
@@ -301,7 +360,7 @@ function createClickEffect(x, y) {
     clickEffect.style.width = '40px';
     clickEffect.style.height = '40px';
     clickEffect.style.borderRadius = '50%';
-    clickEffect.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+    clickEffect.style.backgroundColor = color;
     clickEffect.style.border = '2px solid rgba(0, 100, 255, 0.8)';
     clickEffect.style.zIndex = '1000'; // 与计算器同层
     clickEffect.style.pointerEvents = 'none'; // 避免干扰点击
