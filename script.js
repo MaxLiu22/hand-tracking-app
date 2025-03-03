@@ -15,6 +15,7 @@ function setupCanvas() {
     canvas.style.top = '0';
     canvas.style.left = '0';
     canvas.style.zIndex = '2000'; // 比计算器的z-index更高
+    canvas.style.pointerEvents = 'none'; // 禁用鼠标事件捕获，允许点击穿透到下层元素
 }
 
 // 添加窗口大小变化事件监听
@@ -29,6 +30,7 @@ function updateStatus(message) {
 let hands;
 let camera;
 let lastHandsDetected = false;
+let isPinching = false; // 全局变量，用于跟踪捏合状态
 
 function initializeHands() {
     hands = new Hands({
@@ -126,7 +128,7 @@ function drawHandSkeleton(landmarks) {
     const outlineRadius = 10;
     const lineWidth = 5;
     
-    // 计算坐标转换函数
+    // 改回原来的计算坐标转换函数 (不再反转坐标)
     const transformX = (x) => offsetX + x * displayWidth;
     const transformY = (y) => offsetY + y * displayHeight;
     
@@ -191,37 +193,218 @@ function checkPinchGesture(landmarks) {
         offsetY = (canvas.height - displayHeight) / 2;
     }
     
-    // 计算坐标转换函数
-    const transformX = (x) => offsetX + x * displayWidth;
-    const transformY = (y) => offsetY + y * displayHeight;
+    // 非镜像坐标转换用于显示蓝点
+    const displayX = (x) => offsetX + x * displayWidth;
+    const displayY = (y) => offsetY + y * displayHeight;
     
-    // 转换坐标
-    const thumbX = transformX(thumbTip.x);
-    const thumbY = transformY(thumbTip.y);
-    const indexX = transformX(indexTip.x);
-    const indexY = transformY(indexTip.y);
+    // 镜像坐标转换用于点击
+    const clickX = (x) => {
+        // 翻转X坐标以修正镜像问题
+        const mirroredX = 1.0 - x; // 翻转归一化坐标
+        return offsetX + mirroredX * displayWidth;
+    };
     
-    // 计算两点之间的距离
+    // 使用非镜像坐标计算显示位置
+    const thumbDispX = displayX(thumbTip.x);
+    const thumbDispY = displayY(thumbTip.y);
+    const indexDispX = displayX(indexTip.x);
+    const indexDispY = displayY(indexTip.y);
+    
+    // 使用镜像坐标计算点击位置
+    const thumbClickX = clickX(thumbTip.x);
+    const thumbClickY = displayY(thumbTip.y); // Y坐标不需要镜像
+    const indexClickX = clickX(indexTip.x);
+    const indexClickY = displayY(indexTip.y); // Y坐标不需要镜像
+    
+    // 计算非镜像坐标下两点之间的距离
     const distance = Math.sqrt(
-        Math.pow(thumbX - indexX, 2) + 
-        Math.pow(thumbY - indexY, 2)
+        Math.pow(thumbDispX - indexDispX, 2) + 
+        Math.pow(thumbDispY - indexDispY, 2)
     );
     
     // 捏合阈值 - 可以根据需要调整
-    const pinchThreshold = 50; // 从40像素调整为50像素
+    const pinchThreshold = 50;
     
     // 如果距离小于阈值，则认为是捏合手势
     if (distance < pinchThreshold) {
-        // 在拇指和食指之间绘制一个半透明蓝色圆点
-        const midX = (thumbX + indexX) / 2;
-        const midY = (thumbY + indexY) / 2;
+        // 在拇指和食指之间绘制一个半透明蓝色圆点（使用非镜像坐标）
+        const midDispX = (thumbDispX + indexDispX) / 2;
+        const midDispY = (thumbDispY + indexDispY) / 2;
         
-        // 绘制蓝色圆点
+        // 点击位置使用镜像坐标
+        const midClickX = (thumbClickX + indexClickX) / 2;
+        const midClickY = (thumbClickY + indexClickY) / 2;
+        
+        // 绘制蓝色圆点在非镜像位置
         ctx.beginPath();
-        ctx.arc(midX, midY, 15, 0, 2 * Math.PI);
+        ctx.arc(midDispX, midDispY, 15, 0, 2 * Math.PI);
         ctx.fillStyle = 'rgba(0, 100, 255, 0.6)'; // 半透明蓝色
         ctx.fill();
+        
+        // 如果是刚开始捏合，触发点击事件（使用镜像坐标）
+        if (!isPinching) {
+            console.log('检测到捏合手势，触发点击事件', {x: midClickX, y: midClickY});
+            // 触发鼠标点击事件在镜像位置
+            triggerMouseClick(midClickX, midClickY);
+            isPinching = true;
+        }
+    } else {
+        // 如果不是捏合状态，重置标志
+        if (isPinching) {
+            console.log('捏合手势结束');
+        }
+        isPinching = false;
     }
+}
+
+// 触发鼠标点击事件
+function triggerMouseClick(x, y) {
+    console.log('尝试在坐标点击:', x, y);
+    
+    // 创建点击反馈效果
+    createClickEffect(x, y);
+    
+    // 获取计算器
+    const calculator = document.getElementById('calculator');
+    if (calculator) {
+        // 获取计算器的位置信息
+        const calcRect = calculator.getBoundingClientRect();
+        
+        // 检查点击坐标是否在计算器区域内
+        if (x >= calcRect.left && x <= calcRect.right && 
+            y >= calcRect.top && y <= calcRect.bottom) {
+            
+            console.log('点击在计算器区域内');
+            
+            // 获取所有计算器按钮
+            const buttons = document.querySelectorAll('.calc-button');
+            
+            // 查找最近的按钮
+            let closestButton = null;
+            let minDistance = Number.MAX_VALUE;
+            
+            buttons.forEach(button => {
+                const buttonRect = button.getBoundingClientRect();
+                // 计算按钮中心点
+                const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+                const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+                
+                // 计算到点击位置的距离
+                const distance = Math.sqrt(
+                    Math.pow(buttonCenterX - x, 2) + 
+                    Math.pow(buttonCenterY - y, 2)
+                );
+                
+                // 如果这个按钮更近，则更新最近按钮
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestButton = button;
+                }
+            });
+            
+            // 如果找到了最近的按钮，点击它
+            if (closestButton) {
+                console.log('找到最近的计算器按钮:', closestButton.dataset.value);
+                
+                // 视觉反馈
+                const originalColor = closestButton.style.backgroundColor;
+                closestButton.style.backgroundColor = closestButton.style.backgroundColor === '#ff9500' ? '#ffb84d' : '#f0f0f0';
+                
+                setTimeout(() => {
+                    closestButton.style.backgroundColor = originalColor;
+                }, 100);
+                
+                // 模拟点击 - 使用dispatchEvent代替直接click()
+                try {
+                    // 创建点击事件
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    
+                    // 发送事件到按钮
+                    closestButton.dispatchEvent(clickEvent);
+                    console.log('成功触发计算器按钮点击:', closestButton.dataset.value);
+                } catch (error) {
+                    console.error('点击计算器按钮失败:', error);
+                }
+                return;
+            }
+        }
+    }
+    
+    // 如果不是点击计算器按钮区域，使用默认行为
+    const element = document.elementFromPoint(x, y);
+    if (element) {
+        console.log('找到元素:', element.tagName, element.className);
+        
+        // 创建点击事件
+        const clickEvent = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            clientX: x,
+            clientY: y
+        });
+        
+        try {
+            element.dispatchEvent(clickEvent);
+            console.log(`触发点击事件成功 at (${x}, ${y}) on:`, element);
+        } catch (error) {
+            console.error('触发点击事件失败:', error);
+        }
+    } else {
+        console.log('在坐标点找不到元素:', x, y);
+    }
+}
+
+// 创建点击效果
+function createClickEffect(x, y) {
+    // 创建点击效果容器
+    const clickEffect = document.createElement('div');
+    clickEffect.style.position = 'fixed';
+    clickEffect.style.left = (x - 20) + 'px';
+    clickEffect.style.top = (y - 20) + 'px';
+    clickEffect.style.width = '40px';
+    clickEffect.style.height = '40px';
+    clickEffect.style.borderRadius = '50%';
+    clickEffect.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+    clickEffect.style.border = '2px solid rgba(0, 100, 255, 0.8)';
+    clickEffect.style.zIndex = '1000'; // 与计算器同层
+    clickEffect.style.pointerEvents = 'none'; // 避免干扰点击
+    
+    // 添加动画效果
+    clickEffect.style.animation = 'clickRipple 0.6s ease-out forwards';
+    
+    // 创建动画样式
+    if (!document.getElementById('click-animation-style')) {
+        const styleElement = document.createElement('style');
+        styleElement.id = 'click-animation-style';
+        styleElement.textContent = `
+            @keyframes clickRipple {
+                0% {
+                    transform: scale(0.5);
+                    opacity: 1;
+                }
+                100% {
+                    transform: scale(1.5);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(styleElement);
+    }
+    
+    // 添加到文档
+    document.body.appendChild(clickEffect);
+    
+    // 动画结束后移除元素
+    setTimeout(() => {
+        if (clickEffect.parentNode) {
+            clickEffect.parentNode.removeChild(clickEffect);
+        }
+    }, 600);
 }
 
 // 初始化摄像头
@@ -323,13 +506,21 @@ function createCalculator() {
         
         button.style.transition = 'background-color 0.2s';
         
-        // 鼠标悬停效果
+        // 注释掉鼠标悬停效果
+        /*
         button.addEventListener('mouseover', () => {
             button.style.opacity = '0.8';
         });
         
         button.addEventListener('mouseout', () => {
             button.style.opacity = '1';
+        });
+        */
+        
+        // 确保按钮始终有点击响应
+        button.addEventListener('click', (e) => {
+            console.log('计算器按钮直接点击:', btn);
+            // 现有逻辑在buttonGrid的事件委托中处理
         });
         
         buttonGrid.appendChild(button);
