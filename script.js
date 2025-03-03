@@ -627,6 +627,107 @@ function createCalculator() {
     });
 }
 
+// 创建侧边导航面板
+function createSidebar() {
+    // 创建侧边栏容器
+    const sidebar = document.createElement('div');
+    sidebar.id = 'sidebar';
+    sidebar.style.position = 'fixed';
+    sidebar.style.top = '0';
+    sidebar.style.left = '0';
+    sidebar.style.width = '250px';
+    sidebar.style.height = '100%';
+    sidebar.style.backgroundColor = 'rgba(240, 240, 247, 0.9)'; // 苹果风格背景色
+    sidebar.style.backdropFilter = 'blur(10px)'; // 毛玻璃效果
+    sidebar.style.webkitBackdropFilter = 'blur(10px)'; // Safari支持
+    sidebar.style.zIndex = '999'; // 低于画布但高于大多数元素
+    sidebar.style.padding = '20px';
+    sidebar.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.1)';
+    sidebar.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+    sidebar.style.display = 'flex';
+    sidebar.style.flexDirection = 'column';
+    sidebar.style.gap = '20px';
+    
+    // 添加标题
+    const title = document.createElement('h1');
+    title.textContent = '手势控制网页应用';
+    title.style.fontSize = '18px';
+    title.style.fontWeight = '600';
+    title.style.margin = '0';
+    title.style.color = '#1d1d1f';
+    title.style.paddingBottom = '10px';
+    title.style.borderBottom = '1px solid rgba(0, 0, 0, 0.1)';
+    sidebar.appendChild(title);
+    
+    // 创建计算器控制项
+    const controlItem = document.createElement('div');
+    controlItem.style.display = 'flex';
+    controlItem.style.justifyContent = 'space-between';
+    controlItem.style.alignItems = 'center';
+    controlItem.style.padding = '10px 0';
+    
+    // 计算器标签
+    const label = document.createElement('label');
+    label.textContent = '计算器';
+    label.style.fontSize = '22px';
+    label.style.fontWeight = '500';
+    label.style.color = '#1d1d1f';
+    
+    // 创建开关
+    const toggleSwitch = document.createElement('div');
+    toggleSwitch.className = 'toggle-switch';
+    toggleSwitch.style.position = 'relative';
+    toggleSwitch.style.width = '80px';
+    toggleSwitch.style.height = '50px';
+    toggleSwitch.style.backgroundColor = '#34c759'; // 苹果风格绿色
+    toggleSwitch.style.borderRadius = '25px';
+    toggleSwitch.style.cursor = 'pointer';
+    toggleSwitch.style.transition = 'background-color 0.3s';
+    
+    // 创建开关滑块
+    const slider = document.createElement('div');
+    slider.style.position = 'absolute';
+    slider.style.top = '3px';
+    slider.style.left = '34px';
+    slider.style.width = '44px';
+    slider.style.height = '44px';
+    slider.style.borderRadius = '50%';
+    slider.style.backgroundColor = 'white';
+    slider.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.2)';
+    slider.style.transition = 'left 0.3s';
+    toggleSwitch.appendChild(slider);
+    
+    // 默认计算器是显示的
+    let calculatorVisible = true;
+    const calculator = document.getElementById('calculator') || { style: {} }; // 防止null错误
+    
+    // 添加开关点击事件
+    toggleSwitch.addEventListener('click', () => {
+        calculatorVisible = !calculatorVisible;
+        
+        // 更新开关外观
+        if (calculatorVisible) {
+            toggleSwitch.style.backgroundColor = '#34c759'; // 绿色
+            slider.style.left = '34px';
+        } else {
+            toggleSwitch.style.backgroundColor = '#e9e9ea'; // 灰色
+            slider.style.left = '3px';
+        }
+        
+        // 控制计算器显示
+        const calculator = document.getElementById('calculator');
+        if (calculator) {
+            calculator.style.display = calculatorVisible ? 'block' : 'none';
+        }
+    });
+    
+    controlItem.appendChild(label);
+    controlItem.appendChild(toggleSwitch);
+    sidebar.appendChild(controlItem);
+    
+    document.body.appendChild(sidebar);
+}
+
 // 启动应用
 async function startApp() {
     try {
@@ -649,6 +750,9 @@ async function startApp() {
         
         // 创建计算器
         createCalculator();
+        
+        // 创建侧边导航面板
+        createSidebar();
     } catch (error) {
         console.error("应用启动失败:", error);
         updateStatus("应用启动失败，请刷新页面重试");
