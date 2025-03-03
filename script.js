@@ -725,6 +725,75 @@ function createSidebar() {
     controlItem.appendChild(toggleSwitch);
     sidebar.appendChild(controlItem);
     
+    // 创建空间控制项
+    const spaceControlItem = document.createElement('div');
+    spaceControlItem.style.display = 'flex';
+    spaceControlItem.style.justifyContent = 'space-between';
+    spaceControlItem.style.alignItems = 'center';
+    spaceControlItem.style.padding = '10px 0';
+    spaceControlItem.style.borderTop = '1px solid rgba(0, 0, 0, 0.1)';
+    spaceControlItem.style.marginTop = '10px';
+    
+    // 空间标签
+    const spaceLabel = document.createElement('label');
+    spaceLabel.textContent = 'Space';
+    spaceLabel.style.fontSize = '22px';
+    spaceLabel.style.fontWeight = '500';
+    spaceLabel.style.color = '#1d1d1f';
+    
+    // 创建空间开关
+    const spaceToggleSwitch = document.createElement('div');
+    spaceToggleSwitch.id = 'space-toggle';
+    spaceToggleSwitch.className = 'toggle-switch';
+    spaceToggleSwitch.style.position = 'relative';
+    spaceToggleSwitch.style.width = '80px';
+    spaceToggleSwitch.style.height = '50px';
+    spaceToggleSwitch.style.backgroundColor = '#e9e9ea'; // 默认是灰色（关闭状态）
+    spaceToggleSwitch.style.borderRadius = '25px';
+    spaceToggleSwitch.style.cursor = 'pointer';
+    spaceToggleSwitch.style.transition = 'background-color 0.3s';
+    
+    // 创建空间开关滑块
+    const spaceSlider = document.createElement('div');
+    spaceSlider.style.position = 'absolute';
+    spaceSlider.style.top = '3px';
+    spaceSlider.style.left = '3px'; // 默认在左侧（关闭状态）
+    spaceSlider.style.width = '44px';
+    spaceSlider.style.height = '44px';
+    spaceSlider.style.borderRadius = '50%';
+    spaceSlider.style.backgroundColor = 'white';
+    spaceSlider.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.2)';
+    spaceSlider.style.transition = 'left 0.3s';
+    spaceToggleSwitch.appendChild(spaceSlider);
+    
+    // 空间组件的显示/隐藏状态
+    let spaceVisible = false;
+    const spaceComponent = document.getElementById('space-component');
+    
+    // 添加空间开关点击事件
+    spaceToggleSwitch.addEventListener('click', () => {
+        spaceVisible = !spaceVisible;
+        
+        // 更新开关外观
+        if (spaceVisible) {
+            spaceToggleSwitch.style.backgroundColor = '#34c759'; // 绿色
+            spaceSlider.style.left = '34px';
+            if (spaceComponent) {
+                spaceComponent.classList.remove('hidden');
+            }
+        } else {
+            spaceToggleSwitch.style.backgroundColor = '#e9e9ea'; // 灰色
+            spaceSlider.style.left = '3px';
+            if (spaceComponent) {
+                spaceComponent.classList.add('hidden');
+            }
+        }
+    });
+    
+    spaceControlItem.appendChild(spaceLabel);
+    spaceControlItem.appendChild(spaceToggleSwitch);
+    sidebar.appendChild(spaceControlItem);
+    
     document.body.appendChild(sidebar);
 }
 
