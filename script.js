@@ -265,29 +265,45 @@ function checkPinchGesture(landmarks) {
         // 当前时间
         const currentTime = Date.now();
         
-        // 在任何操作之前，先绘制捏合效果点
-        // 根据状态使用不同颜色
-        let pointColor;
+        // 计算进度（0到1之间的值）
+        const elapsedTime = currentTime - pinchStartTime;
+        const progress = Math.min(elapsedTime / 3000, 1); // 3秒为满进度
+        
+        // 绘制蓝色捏合点（所有阶段都保持蓝色）
         let pointSize = 15;
         
-        if (isDragging) {
-            // 拖拽模式 - 橙色
-            pointColor = 'rgba(255, 100, 0, 0.6)';
-            pointSize = 18; // 稍微大一点以示区别
-        } else if (currentTime - pinchStartTime > 3000) {
-            // 即将进入拖拽模式 - 橙红色
-            pointColor = 'rgba(255, 80, 0, 0.6)';
-            pointSize = 16;
+        // 只有在完全达到阈值后才改变颜色
+        if ((isDragging || window._isEarthInteraction) && progress >= 1) {
+            // 拖拽模式或地球交互模式 - 使用橙色
+            ctx.beginPath();
+            ctx.arc(midDispX, midDispY, pointSize, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(255, 100, 0, 0.6)';
+            ctx.fill();
         } else {
-            // 普通捏合 - 蓝色
-            pointColor = 'rgba(0, 100, 255, 0.6)';
+            // 普通捏合 - 蓝色点
+            ctx.beginPath();
+            ctx.arc(midDispX, midDispY, pointSize, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(0, 100, 255, 0.6)';
+            ctx.fill();
+            
+            // 如果正在进行捏合且未拖拽，绘制白色进度环
+            if (isPinching && !isDragging && !window._isEarthInteraction) {
+                // 绘制进度环
+                ctx.beginPath();
+                ctx.arc(midDispX, midDispY, pointSize + 5, -Math.PI/2, -Math.PI/2 + progress * 2 * Math.PI);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // 如果接近阈值（>90%）但未达到，显示橙红色提示点
+                if (progress > 0.9 && progress < 1) {
+                    ctx.beginPath();
+                    ctx.arc(midDispX, midDispY, 4, 0, 2 * Math.PI);
+                    ctx.fillStyle = 'rgba(255, 80, 0, 0.8)';
+                    ctx.fill();
+                }
+            }
         }
-        
-        // 绘制圆点
-        ctx.beginPath();
-        ctx.arc(midDispX, midDispY, pointSize, 0, 2 * Math.PI);
-        ctx.fillStyle = pointColor;
-        ctx.fill();
         
         // 如果是刚开始捏合
         if (!isPinching) {
@@ -314,12 +330,6 @@ function checkPinchGesture(landmarks) {
                     window._earthDragStart = {x: midClickX, y: midClickY};
                     pinchStartTime = currentTime - 2000;
                 }
-                
-                // 显示特殊的地球交互指示器
-                ctx.beginPath();
-                ctx.arc(midDispX, midDispY, 15, 0, 2 * Math.PI);
-                ctx.fillStyle = 'rgba(0, 255, 255, 0.6)'; // 青色表示地球交互
-                ctx.fill();
             }
             // 不是地球交互，检查是否需要进入拖拽模式
             else if (!isDragging && (currentTime - pinchStartTime > 3000)) {
