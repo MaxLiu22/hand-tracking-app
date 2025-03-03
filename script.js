@@ -264,78 +264,10 @@ function triggerMouseClick(x, y) {
     // 创建点击反馈效果
     createClickEffect(x, y);
     
-    // 获取计算器
-    const calculator = document.getElementById('calculator');
-    if (calculator) {
-        // 获取计算器的位置信息
-        const calcRect = calculator.getBoundingClientRect();
-        
-        // 检查点击坐标是否在计算器区域内
-        if (x >= calcRect.left && x <= calcRect.right && 
-            y >= calcRect.top && y <= calcRect.bottom) {
-            
-            console.log('点击在计算器区域内');
-            
-            // 获取所有计算器按钮
-            const buttons = document.querySelectorAll('.calc-button');
-            
-            // 查找最近的按钮
-            let closestButton = null;
-            let minDistance = Number.MAX_VALUE;
-            
-            buttons.forEach(button => {
-                const buttonRect = button.getBoundingClientRect();
-                // 计算按钮中心点
-                const buttonCenterX = buttonRect.left + buttonRect.width / 2;
-                const buttonCenterY = buttonRect.top + buttonRect.height / 2;
-                
-                // 计算到点击位置的距离
-                const distance = Math.sqrt(
-                    Math.pow(buttonCenterX - x, 2) + 
-                    Math.pow(buttonCenterY - y, 2)
-                );
-                
-                // 如果这个按钮更近，则更新最近按钮
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestButton = button;
-                }
-            });
-            
-            // 如果找到了最近的按钮，点击它
-            if (closestButton) {
-                console.log('找到最近的计算器按钮:', closestButton.dataset.value);
-                
-                // 视觉反馈
-                const originalColor = closestButton.style.backgroundColor;
-                closestButton.style.backgroundColor = closestButton.style.backgroundColor === '#ff9500' ? '#ffb84d' : '#f0f0f0';
-                
-                setTimeout(() => {
-                    closestButton.style.backgroundColor = originalColor;
-                }, 100);
-                
-                // 模拟点击 - 使用dispatchEvent代替直接click()
-                try {
-                    // 创建点击事件
-                    const clickEvent = new MouseEvent('click', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window
-                    });
-                    
-                    // 发送事件到按钮
-                    closestButton.dispatchEvent(clickEvent);
-                    console.log('成功触发计算器按钮点击:', closestButton.dataset.value);
-                } catch (error) {
-                    console.error('点击计算器按钮失败:', error);
-                }
-                return;
-            }
-        }
-    }
-    
-    // 如果不是点击计算器按钮区域，使用默认行为
+    // 获取点击位置的元素 - 直接点击该坐标处的元素
     const element = document.elementFromPoint(x, y);
+    
+    // 如果找到元素，触发点击事件
     if (element) {
         console.log('找到元素:', element.tagName, element.className);
         
