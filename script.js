@@ -9,6 +9,12 @@ function setupCanvas() {
     // 使用视口宽度和高度，而不是视频尺寸
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    
+    // 确保画布在计算器上层
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.zIndex = '2000'; // 比计算器的z-index更高
 }
 
 // 添加窗口大小变化事件监听
@@ -187,6 +193,194 @@ async function setupCamera() {
     }
 }
 
+// 创建计算器
+function createCalculator() {
+    // 创建计算器容器
+    const calculator = document.createElement('div');
+    calculator.id = 'calculator';
+    calculator.style.position = 'fixed';
+    calculator.style.top = '20px';
+    calculator.style.right = '20px';
+    calculator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    calculator.style.borderRadius = '15px'; // 增加圆角
+    calculator.style.padding = '25px'; // 增加内边距
+    calculator.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
+    calculator.style.zIndex = '1000'; // 这个值小于画布的z-index
+    calculator.style.width = '500px'; // 从250px修改为500px，增加到两倍大
+    
+    // 创建显示屏
+    const display = document.createElement('div');
+    display.id = 'calc-display';
+    display.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+    display.style.color = '#000';
+    display.style.padding = '20px'; // 增加内边距
+    display.style.marginBottom = '20px'; // 增加底部间距
+    display.style.borderRadius = '10px'; // 增加圆角
+    display.style.textAlign = 'right';
+    display.style.fontSize = '36px'; // 增加字体大小
+    display.style.fontFamily = 'monospace';
+    display.style.overflow = 'hidden';
+    display.style.height = '60px'; // 增加高度
+    display.textContent = '0';
+    calculator.appendChild(display);
+    
+    // 按钮布局
+    const buttons = [
+        'C', '←', '%', '/',
+        '7', '8', '9', '*',
+        '4', '5', '6', '-',
+        '1', '2', '3', '+',
+        '0', '.', '±', '='
+    ];
+    
+    // 创建按钮容器
+    const buttonGrid = document.createElement('div');
+    buttonGrid.style.display = 'grid';
+    buttonGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    buttonGrid.style.gap = '15px'; // 增加按钮间距
+    
+    // 创建按钮
+    buttons.forEach(btn => {
+        const button = document.createElement('button');
+        button.textContent = btn;
+        button.className = 'calc-button';
+        button.dataset.value = btn;
+        button.style.padding = '20px'; // 增加按钮内边距
+        button.style.fontSize = '28px'; // 增加按钮字体大小
+        button.style.borderRadius = '10px'; // 增加按钮圆角
+        button.style.border = 'none';
+        button.style.cursor = 'pointer';
+        
+        if(['C', '←', '%', '/', '*', '-', '+', '='].includes(btn)) {
+            button.style.backgroundColor = '#ff9500';
+            button.style.color = 'white';
+        } else {
+            button.style.backgroundColor = '#e0e0e0';
+            button.style.color = '#333';
+        }
+        
+        button.style.transition = 'background-color 0.2s';
+        
+        // 鼠标悬停效果
+        button.addEventListener('mouseover', () => {
+            button.style.opacity = '0.8';
+        });
+        
+        button.addEventListener('mouseout', () => {
+            button.style.opacity = '1';
+        });
+        
+        buttonGrid.appendChild(button);
+    });
+    
+    calculator.appendChild(buttonGrid);
+    document.body.appendChild(calculator);
+    
+    // 计算器变量
+    let currentInput = '0';
+    let previousInput = '0';
+    let operation = null;
+    let resetInput = true;
+    
+    // 更新显示
+    function updateDisplay() {
+        display.textContent = currentInput;
+    }
+    
+    // 添加按钮事件监听器
+    buttonGrid.addEventListener('click', (e) => {
+        if(e.target.classList.contains('calc-button')) {
+            const value = e.target.dataset.value;
+            
+            // 数字输入
+            if('0123456789'.includes(value)) {
+                if(resetInput || currentInput === '0') {
+                    currentInput = value;
+                    resetInput = false;
+                } else {
+                    currentInput += value;
+                }
+                updateDisplay();
+            }
+            
+            // 小数点
+            else if(value === '.' && !currentInput.includes('.')) {
+                currentInput += '.';
+                resetInput = false;
+                updateDisplay();
+            }
+            
+            // 清除
+            else if(value === 'C') {
+                currentInput = '0';
+                previousInput = '0';
+                operation = null;
+                resetInput = true;
+                updateDisplay();
+            }
+            
+            // 退格
+            else if(value === '←') {
+                if(currentInput.length > 1) {
+                    currentInput = currentInput.slice(0, -1);
+                } else {
+                    currentInput = '0';
+                    resetInput = true;
+                }
+                updateDisplay();
+            }
+            
+            // 正负号切换
+            else if(value === '±') {
+                currentInput = (parseFloat(currentInput) * -1).toString();
+                updateDisplay();
+            }
+            
+            // 百分比
+            else if(value === '%') {
+                currentInput = (parseFloat(currentInput) / 100).toString();
+                updateDisplay();
+            }
+            
+            // 运算符
+            else if(['+', '-', '*', '/'].includes(value)) {
+                previousInput = currentInput;
+                operation = value;
+                resetInput = true;
+            }
+            
+            // 等号
+            else if(value === '=') {
+                let result;
+                const prev = parseFloat(previousInput);
+                const current = parseFloat(currentInput);
+                
+                switch(operation) {
+                    case '+':
+                        result = prev + current;
+                        break;
+                    case '-':
+                        result = prev - current;
+                        break;
+                    case '*':
+                        result = prev * current;
+                        break;
+                    case '/':
+                        result = prev / current;
+                        break;
+                    default:
+                        result = current;
+                }
+                
+                currentInput = result.toString();
+                operation = null;
+                resetInput = true;
+                updateDisplay();
+            }
+        }
+    });
+}
+
 // 启动应用
 async function startApp() {
     try {
@@ -206,6 +400,9 @@ async function startApp() {
         
         await camera.start();
         updateStatus("没有检测到人手");
+        
+        // 创建计算器
+        createCalculator();
     } catch (error) {
         console.error("应用启动失败:", error);
         updateStatus("应用启动失败，请刷新页面重试");
