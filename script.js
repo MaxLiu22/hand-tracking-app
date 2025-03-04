@@ -1209,7 +1209,7 @@ function createSidebar() {
         rocketFire.style.width = '40px';
         rocketFire.style.height = '30%'; // 从固定60px改为容器高度的30%
         rocketFire.style.background = 'linear-gradient(to bottom, #ff5722, #ff9800, #ffeb3b)';
-        rocketFire.style.clipPath = 'polygon(0 0, 100% 0, 50% 100%)';
+        rocketFire.style.clipPath = 'polygon(0 0, 100% 0, 50% 85%)';
         rocketFire.style.animation = 'fire 0.2s infinite alternate';
         rocketFire.style.cursor = 'grab'; // 火焰也添加grab光标
         rocketFire.style.pointerEvents = 'none'; // 确保点击事件穿透到容器
@@ -1269,11 +1269,13 @@ function createSidebar() {
             styleElement.textContent = `
                 @keyframes fire {
                     from {
-                        height: 30%; // 从固定60px改为30%
+                        height: 30%;
+                        clip-path: polygon(0 0, 100% 0, 50% 85%);
                         opacity: 0.8;
                     }
                     to {
-                        height: 35%; // 从固定70px改为35%
+                        height: 30%; 
+                        clip-path: polygon(0 0, 100% 0, 50% 100%);
                         opacity: 1;
                     }
                 }
