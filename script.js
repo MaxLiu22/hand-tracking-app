@@ -1025,6 +1025,14 @@ function createSidebar() {
     videoLabel.style.fontWeight = '500';
     videoLabel.style.color = '#1d1d1f';
     
+    // 录屏组件的显示/隐藏状态
+    let videoVisible = false; // 修改为false，默认隐藏
+    const inputVideo = document.getElementById('input-video');
+    // 初始化时立即隐藏视频元素
+    if (inputVideo) {
+        inputVideo.style.display = 'none';
+    }
+    
     // 创建录屏开关
     const videoToggleSwitch = document.createElement('div');
     videoToggleSwitch.id = 'video-toggle';
@@ -1032,7 +1040,7 @@ function createSidebar() {
     videoToggleSwitch.style.position = 'relative';
     videoToggleSwitch.style.width = '80px';
     videoToggleSwitch.style.height = '50px';
-    videoToggleSwitch.style.backgroundColor = '#34c759'; // 默认是绿色（开启状态）
+    videoToggleSwitch.style.backgroundColor = '#e9e9ea'; // 修改为灰色（关闭状态）
     videoToggleSwitch.style.borderRadius = '25px';
     videoToggleSwitch.style.cursor = 'pointer';
     videoToggleSwitch.style.transition = 'background-color 0.3s';
@@ -1041,7 +1049,7 @@ function createSidebar() {
     const videoSlider = document.createElement('div');
     videoSlider.style.position = 'absolute';
     videoSlider.style.top = '3px';
-    videoSlider.style.left = '34px'; // 默认在右侧（开启状态）
+    videoSlider.style.left = '3px'; // 修改为左侧位置（关闭状态）
     videoSlider.style.width = '44px';
     videoSlider.style.height = '44px';
     videoSlider.style.borderRadius = '50%';
@@ -1049,10 +1057,6 @@ function createSidebar() {
     videoSlider.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.2)';
     videoSlider.style.transition = 'left 0.3s';
     videoToggleSwitch.appendChild(videoSlider);
-    
-    // 录屏组件的显示/隐藏状态
-    let videoVisible = true;
-    const inputVideo = document.getElementById('input-video');
     
     // 添加录屏开关点击事件
     videoToggleSwitch.addEventListener('click', () => {
