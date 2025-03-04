@@ -1082,6 +1082,189 @@ function createSidebar() {
     videoControlItem.appendChild(videoToggleSwitch);
     sidebar.appendChild(videoControlItem);
     
+    // 创建火箭控制项
+    const rocketControlItem = document.createElement('div');
+    rocketControlItem.style.display = 'flex';
+    rocketControlItem.style.justifyContent = 'space-between';
+    rocketControlItem.style.alignItems = 'center';
+    rocketControlItem.style.padding = '10px 0';
+    rocketControlItem.style.borderTop = '1px solid rgba(0, 0, 0, 0.1)';
+    rocketControlItem.style.marginTop = '10px';
+    
+    // 火箭标签
+    const rocketLabel = document.createElement('label');
+    rocketLabel.textContent = 'Rocket';
+    rocketLabel.style.fontSize = '22px';
+    rocketLabel.style.fontWeight = '500';
+    rocketLabel.style.color = '#1d1d1f';
+    
+    // 火箭面板的显示/隐藏状态
+    let rocketVisible = false;
+    
+    // 创建火箭开关
+    const rocketToggleSwitch = document.createElement('div');
+    rocketToggleSwitch.id = 'rocket-toggle';
+    rocketToggleSwitch.className = 'toggle-switch';
+    rocketToggleSwitch.style.position = 'relative';
+    rocketToggleSwitch.style.width = '80px';
+    rocketToggleSwitch.style.height = '50px';
+    rocketToggleSwitch.style.backgroundColor = '#e9e9ea'; // 默认灰色（关闭状态）
+    rocketToggleSwitch.style.borderRadius = '25px';
+    rocketToggleSwitch.style.cursor = 'pointer';
+    rocketToggleSwitch.style.transition = 'background-color 0.3s';
+    
+    // 创建火箭开关滑块
+    const rocketSlider = document.createElement('div');
+    rocketSlider.style.position = 'absolute';
+    rocketSlider.style.top = '3px';
+    rocketSlider.style.left = '3px'; // 默认在左侧（关闭状态）
+    rocketSlider.style.width = '44px';
+    rocketSlider.style.height = '44px';
+    rocketSlider.style.borderRadius = '50%';
+    rocketSlider.style.backgroundColor = 'white';
+    rocketSlider.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.2)';
+    rocketSlider.style.transition = 'left 0.3s';
+    rocketToggleSwitch.appendChild(rocketSlider);
+    
+    // 替换火箭面板创建代码
+    let rocketPanel = document.getElementById('rocket-panel');
+    if (!rocketPanel) {
+        rocketPanel = document.createElement('div');
+        rocketPanel.id = 'rocket-panel';
+        rocketPanel.className = 'rocket-panel';
+        rocketPanel.style.position = 'absolute';
+        rocketPanel.style.top = '5%';
+        rocketPanel.style.right = '5%';
+        rocketPanel.style.width = '75%';
+        rocketPanel.style.height = '75%';
+        rocketPanel.style.backgroundColor = '#87CEEB'; // 蓝天颜色
+        rocketPanel.style.background = 'linear-gradient(to bottom, #87CEEB, #E0F7FF)';
+        rocketPanel.style.borderRadius = '10px';
+        rocketPanel.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+        rocketPanel.style.overflow = 'hidden';
+        rocketPanel.style.zIndex = '1000'; // 从2000改为1000，与计算器保持一致
+        rocketPanel.style.display = 'none'; // 初始隐藏
+        
+        // 创建白云 (伪元素无法通过JS直接创建，所以用div)
+        const cloud1 = document.createElement('div');
+        cloud1.style.position = 'absolute';
+        cloud1.style.width = '150px';
+        cloud1.style.height = '60px';
+        cloud1.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+        cloud1.style.borderRadius = '50%';
+        cloud1.style.top = '30px';
+        cloud1.style.left = '20%';
+        rocketPanel.appendChild(cloud1);
+        
+        const cloud2 = document.createElement('div');
+        cloud2.style.position = 'absolute';
+        cloud2.style.width = '100px';
+        cloud2.style.height = '40px';
+        cloud2.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+        cloud2.style.borderRadius = '50%';
+        cloud2.style.top = '50px';
+        cloud2.style.right = '15%';
+        rocketPanel.appendChild(cloud2);
+        
+        const rocketContainer = document.createElement('div');
+        rocketContainer.className = 'rocket-container';
+        rocketContainer.style.position = 'absolute';
+        rocketContainer.style.bottom = '50px';
+        rocketContainer.style.left = '50%';
+        rocketContainer.style.transform = 'translateX(-50%)';
+        rocketContainer.style.width = '100px';
+        rocketContainer.style.height = '200px';
+        
+        const rocket = document.createElement('div');
+        rocket.className = 'rocket';
+        
+        const rocketBody = document.createElement('div');
+        rocketBody.className = 'rocket-body';
+        rocketBody.style.position = 'absolute';
+        rocketBody.style.bottom = '0';
+        rocketBody.style.left = '50%';
+        rocketBody.style.transform = 'translateX(-50%)';
+        rocketBody.style.width = '60px';
+        rocketBody.style.height = '120px';
+        rocketBody.style.background = 'linear-gradient(to right, #d3d3d3, #f5f5f5, #d3d3d3)';
+        rocketBody.style.borderTopLeftRadius = '30px';
+        rocketBody.style.borderTopRightRadius = '30px';
+        
+        const rocketFire = document.createElement('div');
+        rocketFire.className = 'rocket-fire';
+        rocketFire.style.position = 'absolute';
+        rocketFire.style.bottom = '-30px';
+        rocketFire.style.left = '50%';
+        rocketFire.style.transform = 'translateX(-50%)';
+        rocketFire.style.width = '40px';
+        rocketFire.style.height = '60px';
+        rocketFire.style.background = 'linear-gradient(to bottom, #ff5722, #ff9800, #ffeb3b)';
+        rocketFire.style.clipPath = 'polygon(0 0, 100% 0, 50% 100%)';
+        rocketFire.style.animation = 'fire 0.2s infinite alternate';
+        
+        rocket.appendChild(rocketBody);
+        rocket.appendChild(rocketFire);
+        rocketContainer.appendChild(rocket);
+        rocketPanel.appendChild(rocketContainer);
+        
+        // 将火箭面板添加到body而不是container，确保它可以覆盖计算器
+        document.body.appendChild(rocketPanel);
+        
+        // 创建动画样式（如果不存在）
+        if (!document.getElementById('rocket-animation-style')) {
+            const styleElement = document.createElement('style');
+            styleElement.id = 'rocket-animation-style';
+            styleElement.textContent = `
+                @keyframes fire {
+                    from {
+                        height: 60px;
+                        opacity: 0.8;
+                    }
+                    to {
+                        height: 70px;
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(styleElement);
+        }
+        
+        console.log('火箭面板创建完成', rocketPanel);
+    }
+    
+    // 替换火箭开关事件监听代码
+    rocketToggleSwitch.addEventListener('click', () => {
+        rocketVisible = !rocketVisible;
+        console.log('火箭开关状态:', rocketVisible);
+        
+        // 更新开关外观
+        if (rocketVisible) {
+            rocketToggleSwitch.style.backgroundColor = '#34c759'; // 绿色
+            rocketSlider.style.left = '34px';
+            
+            // 显示火箭面板
+            if (rocketPanel) {
+                console.log('显示火箭面板');
+                rocketPanel.style.display = 'block';
+            } else {
+                console.error('火箭面板不存在');
+            }
+        } else {
+            rocketToggleSwitch.style.backgroundColor = '#e9e9ea'; // 灰色
+            rocketSlider.style.left = '3px';
+            
+            // 隐藏火箭面板
+            if (rocketPanel) {
+                console.log('隐藏火箭面板');
+                rocketPanel.style.display = 'none';
+            }
+        }
+    });
+    
+    rocketControlItem.appendChild(rocketLabel);
+    rocketControlItem.appendChild(rocketToggleSwitch);
+    sidebar.appendChild(rocketControlItem);
+    
     document.body.appendChild(sidebar);
 }
 
