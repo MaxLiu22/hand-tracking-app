@@ -1169,7 +1169,7 @@ function createSidebar() {
         const rocketContainer = document.createElement('div');
         rocketContainer.className = 'rocket-container';
         rocketContainer.style.position = 'absolute';
-        rocketContainer.style.bottom = '50px';
+        rocketContainer.style.bottom = '30%'; // 从50px修改为30%，使其在垂直方向上位于中间偏下
         rocketContainer.style.left = '50%';
         rocketContainer.style.transform = 'translateX(-50%)';
         rocketContainer.style.width = '100px';
