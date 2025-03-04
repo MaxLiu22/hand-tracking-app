@@ -1170,11 +1170,11 @@ function createSidebar() {
         const rocketContainer = document.createElement('div');
         rocketContainer.className = 'rocket-container';
         rocketContainer.style.position = 'absolute';
-        rocketContainer.style.bottom = '30%'; 
+        rocketContainer.style.bottom = '30%'; // 从5%改为15%，让火箭更靠近面板中心
         rocketContainer.style.left = '50%';
         rocketContainer.style.transform = 'translateX(-50%)';
         rocketContainer.style.width = '100px';
-        rocketContainer.style.height = '200px';
+        rocketContainer.style.height = '85%'; // 保持高度为面板的85%
         rocketContainer.style.cursor = 'grab'; // 添加抓取光标样式
         rocketContainer.style.userSelect = 'none'; // 防止文本选择
 
@@ -1193,7 +1193,7 @@ function createSidebar() {
         rocketBody.style.left = '50%';
         rocketBody.style.transform = 'translateX(-50%)';
         rocketBody.style.width = '60px';
-        rocketBody.style.height = '120px';
+        rocketBody.style.height = '70%'; // 从固定120px改为火箭容器高度的70%
         rocketBody.style.background = 'linear-gradient(to right, #d3d3d3, #f5f5f5, #d3d3d3)';
         rocketBody.style.borderTopLeftRadius = '30px';
         rocketBody.style.borderTopRightRadius = '30px';
@@ -1203,11 +1203,11 @@ function createSidebar() {
         const rocketFire = document.createElement('div');
         rocketFire.className = 'rocket-fire';
         rocketFire.style.position = 'absolute';
-        rocketFire.style.bottom = '-30px';
+        rocketFire.style.bottom = '-15%'; // 从-30px改为相对大小
         rocketFire.style.left = '50%';
         rocketFire.style.transform = 'translateX(-50%)';
         rocketFire.style.width = '40px';
-        rocketFire.style.height = '60px';
+        rocketFire.style.height = '30%'; // 从固定60px改为容器高度的30%
         rocketFire.style.background = 'linear-gradient(to bottom, #ff5722, #ff9800, #ffeb3b)';
         rocketFire.style.clipPath = 'polygon(0 0, 100% 0, 50% 100%)';
         rocketFire.style.animation = 'fire 0.2s infinite alternate';
@@ -1269,11 +1269,11 @@ function createSidebar() {
             styleElement.textContent = `
                 @keyframes fire {
                     from {
-                        height: 60px;
+                        height: 30%; // 从固定60px改为30%
                         opacity: 0.8;
                     }
                     to {
-                        height: 70px;
+                        height: 35%; // 从固定70px改为35%
                         opacity: 1;
                     }
                 }
