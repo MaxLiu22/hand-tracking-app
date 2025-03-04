@@ -1166,18 +1166,26 @@ function createSidebar() {
         cloud2.style.right = '15%';
         rocketPanel.appendChild(cloud2);
         
+        // 确保整个火箭（包括火箭体和火焰）都可以拖动
         const rocketContainer = document.createElement('div');
         rocketContainer.className = 'rocket-container';
         rocketContainer.style.position = 'absolute';
-        rocketContainer.style.bottom = '30%'; // 从50px修改为30%，使其在垂直方向上位于中间偏下
+        rocketContainer.style.bottom = '30%'; 
         rocketContainer.style.left = '50%';
         rocketContainer.style.transform = 'translateX(-50%)';
         rocketContainer.style.width = '100px';
         rocketContainer.style.height = '200px';
-        
+        rocketContainer.style.cursor = 'grab'; // 添加抓取光标样式
+        rocketContainer.style.userSelect = 'none'; // 防止文本选择
+
+        // 创建火箭和火焰
         const rocket = document.createElement('div');
         rocket.className = 'rocket';
-        
+        rocket.style.position = 'relative'; // 确保定位正确
+        rocket.style.width = '100%';
+        rocket.style.height = '100%';
+        rocket.style.cursor = 'grab'; // 火箭也添加grab光标
+
         const rocketBody = document.createElement('div');
         rocketBody.className = 'rocket-body';
         rocketBody.style.position = 'absolute';
@@ -1189,7 +1197,9 @@ function createSidebar() {
         rocketBody.style.background = 'linear-gradient(to right, #d3d3d3, #f5f5f5, #d3d3d3)';
         rocketBody.style.borderTopLeftRadius = '30px';
         rocketBody.style.borderTopRightRadius = '30px';
-        
+        rocketBody.style.cursor = 'grab'; // 火箭体也添加grab光标
+        rocketBody.style.pointerEvents = 'none'; // 确保点击事件穿透到容器
+
         const rocketFire = document.createElement('div');
         rocketFire.className = 'rocket-fire';
         rocketFire.style.position = 'absolute';
@@ -1201,9 +1211,51 @@ function createSidebar() {
         rocketFire.style.background = 'linear-gradient(to bottom, #ff5722, #ff9800, #ffeb3b)';
         rocketFire.style.clipPath = 'polygon(0 0, 100% 0, 50% 100%)';
         rocketFire.style.animation = 'fire 0.2s infinite alternate';
-        
+        rocketFire.style.cursor = 'grab'; // 火焰也添加grab光标
+        rocketFire.style.pointerEvents = 'none'; // 确保点击事件穿透到容器
+
+        // 组装火箭
         rocket.appendChild(rocketBody);
         rocket.appendChild(rocketFire);
+
+        // 为火箭元素添加同样的事件监听器
+        rocket.addEventListener('mousedown', handleRocketMouseDown);
+        rocketContainer.addEventListener('mousedown', handleRocketMouseDown);
+
+        // 创建事件处理函数
+        function handleRocketMouseDown(e) {
+            isDraggingRocket = true;
+            
+            // 计算鼠标位置与火箭容器的偏移
+            const rect = rocketContainer.getBoundingClientRect();
+            rocketOffsetX = e.clientX - rect.left;
+            rocketOffsetY = e.clientY - rect.top;
+            
+            // 改变光标样式
+            rocketContainer.style.cursor = 'grabbing';
+            rocket.style.cursor = 'grabbing';
+            
+            // 防止文本选择等默认行为
+            e.preventDefault();
+            e.stopPropagation(); // 阻止事件冒泡
+        }
+
+        // 其他触摸事件也需要相应调整
+        rocketContainer.addEventListener('touchstart', handleRocketTouchStart);
+        rocket.addEventListener('touchstart', handleRocketTouchStart);
+
+        function handleRocketTouchStart(e) {
+            isDraggingRocket = true;
+            
+            const touch = e.touches[0];
+            const rect = rocketContainer.getBoundingClientRect();
+            rocketOffsetX = touch.clientX - rect.left;
+            rocketOffsetY = touch.clientY - rect.top;
+            
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         rocketContainer.appendChild(rocket);
         rocketPanel.appendChild(rocketContainer);
         
