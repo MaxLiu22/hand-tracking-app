@@ -1663,8 +1663,9 @@ function initializeHospitalMonitor() {
 function createWaveformContainer(title, color, unit) {
     const container = document.createElement('div');
     container.style.flex = '1';
-    container.style.backgroundColor = '#121E2A';
+    container.style.backgroundColor = 'transparent';
     container.style.borderRadius = '5px';
+    container.style.border = '1px solid rgba(255, 255, 255, 0.2)';
     container.style.position = 'relative';
     container.style.overflow = 'hidden';
     
@@ -1749,6 +1750,7 @@ function createWaveformContainer(title, color, unit) {
     // 波形画布
     const canvas = document.createElement('canvas');
     canvas.style.position = 'absolute';
+    canvas.style.backgroundColor = 'transparent';
     canvas.style.top = '0';
     canvas.style.left = '0';
     canvas.style.width = '100%';
