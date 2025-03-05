@@ -1668,6 +1668,9 @@ function createWaveformContainer(title, color, unit) {
     container.style.border = '1px solid rgba(255, 255, 255, 0.2)';
     container.style.position = 'relative';
     container.style.overflow = 'hidden';
+    container.style.width = '800px'; // 设置固定宽度为800px
+    container.style.height = '200px'; // 设置固定高度为200px
+    container.dataset.waveformType = title; // 添加数据属性来标识波形类型
     
     // 添加标题和单位
     const labelContainer = document.createElement('div');
@@ -1684,6 +1687,7 @@ function createWaveformContainer(title, color, unit) {
     titleElem.style.fontWeight = 'bold';
     titleElem.style.color = color;
     titleElem.style.fontSize = '14px';
+    titleElem.dataset.waveformTitle = title; // 添加数据属性来标识标题元素
     labelContainer.appendChild(titleElem);
     
     const unitElem = document.createElement('div');
@@ -1702,17 +1706,19 @@ function createWaveformContainer(title, color, unit) {
     valueContainer.style.fontWeight = 'bold';
     valueContainer.style.fontSize = '18px';
     valueContainer.style.color = color;
+    valueContainer.className = 'waveform-value-display';
+    valueContainer.dataset.waveformValue = title; // 添加数据属性来标识值显示元素
     container.appendChild(valueContainer);
     
-    // 如果是ECG，显示心率
+    // 设置初始值
     if (title === 'ECG II') {
-        valueContainer.textContent = '72';
+        valueContainer.textContent = '80';
     } else if (title === 'RESP') {
         valueContainer.textContent = '18';
     } else if (title === 'SpO₂') {
         valueContainer.textContent = '98';
     } else if (title === 'NIBP') {
-        valueContainer.textContent = '120/80';
+        valueContainer.textContent = '220/130';
     }
     
     // 添加网格背景
@@ -1722,25 +1728,51 @@ function createWaveformContainer(title, color, unit) {
     gridCanvas.style.left = '0';
     gridCanvas.style.width = '100%';
     gridCanvas.style.height = '100%';
-    gridCanvas.width = 1000; // 将在resize时调整
+    gridCanvas.width = 800;
     gridCanvas.height = 200;
     container.appendChild(gridCanvas);
     
-    // 绘制网格
+    // 绘制网格 - 使用浅红色 1mm 网格
     const gridCtx = gridCanvas.getContext('2d');
-    gridCtx.strokeStyle = 'rgba(80, 100, 120, 0.2)';
-    gridCtx.lineWidth = 1;
     
-    // 横线
-    for (let y = 0; y < gridCanvas.height; y += 20) {
+    // 像素比例: 1mV = 200px, 1秒 = 500px
+    // 1mm = 20px (按照医疗标准网格比例)
+    const mmToPx = 20; // 1mm对应20像素
+    
+    // 小格子 (1mm)
+    gridCtx.strokeStyle = 'rgba(255, 200, 200, 0.3)'; // 浅红色
+    gridCtx.lineWidth = 0.5;
+    
+    // 横线 (1mm间隔)
+    for (let y = 0; y <= gridCanvas.height; y += mmToPx) {
         gridCtx.beginPath();
         gridCtx.moveTo(0, y);
         gridCtx.lineTo(gridCanvas.width, y);
         gridCtx.stroke();
     }
     
-    // 竖线
-    for (let x = 0; x < gridCanvas.width; x += 20) {
+    // 竖线 (1mm间隔)
+    for (let x = 0; x <= gridCanvas.width; x += mmToPx) {
+        gridCtx.beginPath();
+        gridCtx.moveTo(x, 0);
+        gridCtx.lineTo(x, gridCanvas.height);
+        gridCtx.stroke();
+    }
+    
+    // 每5mm绘制更明显的网格线
+    gridCtx.strokeStyle = 'rgba(255, 150, 150, 0.4)'; // 稍深一点的红色
+    gridCtx.lineWidth = 1;
+    
+    // 横线 (5mm间隔)
+    for (let y = 0; y <= gridCanvas.height; y += mmToPx * 5) {
+        gridCtx.beginPath();
+        gridCtx.moveTo(0, y);
+        gridCtx.lineTo(gridCanvas.width, y);
+        gridCtx.stroke();
+    }
+    
+    // 竖线 (5mm间隔)
+    for (let x = 0; x <= gridCanvas.width; x += mmToPx * 5) {
         gridCtx.beginPath();
         gridCtx.moveTo(x, 0);
         gridCtx.lineTo(x, gridCanvas.height);
@@ -1755,8 +1787,9 @@ function createWaveformContainer(title, color, unit) {
     canvas.style.left = '0';
     canvas.style.width = '100%';
     canvas.style.height = '100%';
-    canvas.width = 1000; // 将在resize时调整
+    canvas.width = 800;
     canvas.height = 200;
+    canvas.className = 'waveform-canvas';
     container.appendChild(canvas);
     
     return container;
@@ -1903,33 +1936,67 @@ function createParameterBox(title, value, unit, color, normalRange, lowLimit, hi
     return box;
 }
 
-// 启动呼吸波形模拟
+// 启动呼吸波形模拟 - 潮式呼吸（Cheyne-Stokes）
 function startRespirationSimulation(canvas) {
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = '#4CD964'; // 绿色
     ctx.lineWidth = 2;
     
     let x = 0;
-    // 呼吸波形模式 - 比ECG更平缓的正弦波
-    let phase = 0;
+    let cycleTime = 0; // 用于计算30秒周期
+    const cycleLength = 30; // 周期长度为30秒
+    const mmToPx = 20; // 1mm = 20px
+    
+    // 找到呼吸数值显示元素的更可靠方法
+    function getRespDisplayElement() {
+        // 使用数据属性查找元素
+        return document.querySelector('[data-waveform-value="RESP"]');
+    }
+    
+    // 更新显示的呼吸率值
+    function updateRespDisplay() {
+        const respDisplay = getRespDisplayElement();
+        if (respDisplay) {
+            respDisplay.textContent = '18'; // 呼吸率
+        }
+    }
+    
+    // 初始更新一次呼吸率显示
+    setTimeout(updateRespDisplay, 100);
     
     function drawRespiration() {
-        // 清除一小部分画布
+        // 清除扫描线前方的一小块区域
         ctx.clearRect(x, 0, 3, canvas.height);
         
         const centerY = canvas.height / 2;
-        const amplitude = 30; // 振幅
         
+        // 新的呼吸点的x坐标
         if (x === 0) {
             ctx.beginPath();
             ctx.moveTo(x, centerY);
         }
         
-        // 生成呼吸波形 - 比ECG更缓慢的正弦波
-        phase += 0.03;
-        const nextY = centerY - Math.sin(phase) * amplitude;
+        // 计算潮式呼吸的当前振幅
+        // 振幅从0-20mm周期性变化，周期30秒
+        cycleTime += 0.01; // 根据绘制速度调整
         
-        ctx.lineTo(x, nextY);
+        // 计算当前在30秒周期中的位置(0-1)
+        const cyclePosition = (cycleTime % cycleLength) / cycleLength;
+        
+        // 创建从0到20再回到0的正弦振幅变化
+        const amplitudeModulation = Math.sin(cyclePosition * Math.PI * 2) * 0.5 + 0.5;
+        const maxAmplitude = 20 * mmToPx * 0.8; // 最大振幅20mm
+        const currentMaxAmplitude = maxAmplitude * amplitudeModulation;
+        
+        // 基础呼吸正弦波形
+        const breathPhase = cycleTime * 5; // 呼吸频率
+        const breathValue = Math.sin(breathPhase);
+        
+        // 计算最终的波形，振幅受到调制
+        const finalY = centerY - breathValue * currentMaxAmplitude;
+        
+        // 绘制呼吸波形
+        ctx.lineTo(x, finalY);
         ctx.stroke();
         
         // 更新x位置
@@ -1940,41 +2007,116 @@ function startRespirationSimulation(canvas) {
             ctx.beginPath();
         }
         
-        requestAnimationFrame(drawRespiration);
+        // 确保动画帧循环继续
+        try {
+            requestAnimationFrame(drawRespiration);
+        } catch (e) {
+            console.error("Animation frame error:", e);
+            // 如果出错，尝试重新开始
+            setTimeout(() => requestAnimationFrame(drawRespiration), 100);
+        }
     }
     
     drawRespiration();
 }
 
-// 启动SpO2波形模拟
+// 启动SpO2波形模拟 - 低氧血症模式
 function startSpO2Simulation(canvas) {
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = '#FF9500'; // 橙色
     ctx.lineWidth = 2;
     
     let x = 0;
-    // SpO2波形模式 - 类似脉搏的波形
     let phase = 0;
+    const mmToPx = 20; // 1mm = 20px
+    
+    // SpO2值从98%下降到75%的模拟
+    let spo2Value = 98;
+    let hypoxemiaStart = false;
+    let hypoxemiaTime = 0;
+    
+    // 找到SpO2数值显示元素的更可靠方法
+    function getSpO2DisplayElement() {
+        // 使用数据属性查找元素
+        return document.querySelector('[data-waveform-value="SpO₂"]');
+    }
+    
+    // 更新显示的SpO2值
+    function updateSpO2Display() {
+        const spo2Display = getSpO2DisplayElement();
+        if (spo2Display) {
+            spo2Display.textContent = Math.round(spo2Value).toString();
+            
+            // 改变显示颜色以反映氧合状态
+            if (spo2Value < 90) {
+                spo2Display.style.color = '#FF3B30'; // 低氧警告-红色
+            } else if (spo2Value < 94) {
+                spo2Display.style.color = '#FF9500'; // 轻度低氧-橙色
+            } else {
+                spo2Display.style.color = '#4CD964'; // 正常-绿色
+            }
+        }
+    }
+    
+    // 初始更新一次SpO2显示
+    setTimeout(updateSpO2Display, 100);
+    
+    // 设置低氧事件计时器
+    setTimeout(() => {
+        hypoxemiaStart = true;
+    }, 5000); // 5秒后开始低氧事件
     
     function drawSpO2() {
-        // 清除一小部分画布
+        // 清除扫描线前方的一小块区域
         ctx.clearRect(x, 0, 3, canvas.height);
         
         const centerY = canvas.height / 2;
-        const amplitude = 25; // 振幅
         
         if (x === 0) {
             ctx.beginPath();
             ctx.moveTo(x, centerY);
         }
         
-        // 生成SpO2波形 - 快速上升和缓慢下降的脉搏波形
-        phase += 0.05;
-        let value = Math.sin(phase);
-        // 使波形有更快的上升和较慢的下降
-        value = value > 0 ? Math.pow(value, 0.5) : Math.pow(value, 3) * 0.5;
-        const nextY = centerY - value * amplitude;
+        // 产生低氧事件
+        if (hypoxemiaStart) {
+            hypoxemiaTime += 0.05;
+            
+            // 在30秒内将SpO2从98%降至75%
+            if (hypoxemiaTime <= 30 && spo2Value > 75) {
+                // 非线性下降模式，先缓慢后快速
+                const dropRate = 0.05 + (hypoxemiaTime / 30) * 0.15;
+                spo2Value -= dropRate;
+                
+                // 定时更新显示
+                if (Math.floor(hypoxemiaTime * 10) % 5 === 0) {
+                    updateSpO2Display();
+                }
+            }
+        }
         
+        // 生成SpO2波形 - 频率120次/分钟
+        phase += 0.08; // 调整为120次/分钟的频率
+        
+        // 根据SpO2值调整波形振幅
+        const normalAmplitude = 0.5 * mmToPx; // 基础振幅0.5mm
+        let currentAmplitude = normalAmplitude;
+        
+        // 低氧时波形振幅减小
+        if (spo2Value < 90) {
+            currentAmplitude = normalAmplitude * (spo2Value / 100);
+        }
+        
+        // 使用贝塞尔曲线模拟真实的脉搏血氧波形
+        const pulsatile = Math.pow(Math.sin(phase), 3) * 0.8 + Math.sin(phase) * 0.2;
+        
+        // 添加随机噪声
+        const noise = (Math.random() - 0.5) * (1 - spo2Value / 100) * 5;
+        
+        // 计算最终波形值
+        const waveValue = pulsatile * currentAmplitude + noise;
+        const nextY = centerY - waveValue;
+        
+        // 绘制SpO2波形
         ctx.lineTo(x, nextY);
         ctx.stroke();
         
@@ -1986,13 +2128,20 @@ function startSpO2Simulation(canvas) {
             ctx.beginPath();
         }
         
-        requestAnimationFrame(drawSpO2);
+        // 确保动画帧循环继续
+        try {
+            requestAnimationFrame(drawSpO2);
+        } catch (e) {
+            console.error("Animation frame error:", e);
+            // 如果出错，尝试重新开始
+            setTimeout(() => requestAnimationFrame(drawSpO2), 100);
+        }
     }
     
     drawSpO2();
 }
 
-// 启动NIBP波形模拟
+// 启动NIBP波形模拟 - 高血压危象
 function startNIBPSimulation(canvas) {
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = '#FF2D55'; // 红色
@@ -2000,11 +2149,28 @@ function startNIBPSimulation(canvas) {
     
     let x = 0;
     let phase = 0;
-    let measuring = false;
-    let measureStart = 0;
+    const mmToPx = 20; // 1mm = 20px
+    
+    // 找到NIBP数值显示元素的更可靠方法
+    function getNIBPDisplayElement() {
+        // 使用数据属性查找元素
+        return document.querySelector('[data-waveform-value="NIBP"]');
+    }
+    
+    // 更新显示的血压值
+    function updateNIBPDisplay() {
+        const nibpDisplay = getNIBPDisplayElement();
+        if (nibpDisplay) {
+            nibpDisplay.textContent = '220/130';
+            nibpDisplay.style.color = '#FF3B30'; // 高血压危象-红色警告
+        }
+    }
+    
+    // 初始更新一次血压显示
+    setTimeout(updateNIBPDisplay, 100);
     
     function drawNIBP() {
-        // 清除一小部分画布
+        // 清除扫描线前方的一小块区域
         ctx.clearRect(x, 0, 3, canvas.height);
         
         const centerY = canvas.height / 2;
@@ -2012,41 +2178,39 @@ function startNIBPSimulation(canvas) {
         if (x === 0) {
             ctx.beginPath();
             ctx.moveTo(x, centerY);
-            
-            // 50%的概率开始测量
-            if (Math.random() > 0.995 && !measuring) {
-                measuring = true;
-                measureStart = Date.now();
-            }
         }
         
-        let nextY = centerY;
+        // 计算高血压危象的动脉压波形
+        // 频率100次/分钟，波峰5mm高，血压220/130 mmHg
+        phase += 0.07; // 调整为100次/分钟
         
-        // 如果正在测量，显示BP测量动画
-        if (measuring) {
-            const elapsed = Date.now() - measureStart;
-            
-            if (elapsed < 5000) { // 膨胀阶段
-                const progress = elapsed / 5000;
-                // 上升到一个高点
-                const amplitude = 50 * progress;
-                // 添加一些脉搏震动
-                phase += 0.2;
-                nextY = centerY - amplitude - Math.sin(phase) * 3 * progress;
-            } else if (elapsed < 15000) { // 缓慢释放阶段
-                const progress = (elapsed - 5000) / 10000;
-                const amplitude = 50 * (1 - progress);
-                // 添加越来越明显的脉搏震动
-                phase += 0.2;
-                nextY = centerY - amplitude - Math.sin(phase) * (5 + 10 * progress);
-            } else {
-                measuring = false; // 测量完成
-            }
+        // 波形设计 - 急速上升和缓慢下降的脉搏波，显示高压力
+        let waveShape;
+        const pulseCycle = phase % (2 * Math.PI);
+        
+        if (pulseCycle < Math.PI * 0.15) {
+            // 急速上升期 (15% 的时间)
+            waveShape = Math.pow(Math.sin(pulseCycle / (Math.PI * 0.15) * (Math.PI / 2)), 0.8);
         } else {
-            // 不测量时显示平缓的基线
-            nextY = centerY;
+            // 缓慢下降期 (85% 的时间)
+            const decayPhase = (pulseCycle - Math.PI * 0.15) / (Math.PI * 1.85);
+            waveShape = Math.cos(decayPhase * Math.PI / 2);
         }
         
+        // 高血压危象的振幅 - 5mm
+        const amplitude = 5 * mmToPx * 0.8;
+        
+        // 添加二级震荡，模拟高压下的动脉壁震荡
+        const highPressureOscillation = Math.sin(phase * 6) * 0.1 * amplitude;
+        
+        // 添加噪声，表现动脉僵硬性
+        const noise = (Math.random() - 0.5) * 0.05 * amplitude;
+        
+        // 计算最终波形
+        const waveValue = waveShape * amplitude + highPressureOscillation + noise;
+        const nextY = centerY - waveValue;
+        
+        // 绘制NIBP波形
         ctx.lineTo(x, nextY);
         ctx.stroke();
         
@@ -2058,101 +2222,122 @@ function startNIBPSimulation(canvas) {
             ctx.beginPath();
         }
         
-        requestAnimationFrame(drawNIBP);
+        // 确保动画帧循环继续
+        try {
+            requestAnimationFrame(drawNIBP);
+        } catch (e) {
+            console.error("Animation frame error:", e);
+            // 如果出错，尝试重新开始
+            setTimeout(() => requestAnimationFrame(drawNIBP), 100);
+        }
     }
     
     drawNIBP();
 }
 
-// 模拟更新生命体征数值
+// 更新生命体征数值 - 固定为指定的临床场景值
 function updateVitalSigns(container) {
-    // 随机变化一些值，模拟实时数据
-
-    // 心率
+    // 设置固定值，代表我们的临床场景
+    
+    // ECG - 急性STEMI - 心率80
     const hrValue = container.querySelector(':nth-child(1) .value-container div:first-child');
-    const currentHR = parseInt(hrValue.textContent);
-    const newHR = Math.max(60, Math.min(100, currentHR + Math.floor(Math.random() * 7) - 3));
-    hrValue.textContent = newHR;
+    if (hrValue) {
+        hrValue.textContent = '80';
+    }
     
-    // 呼吸
+    // RESP - 潮式呼吸
     const respValue = container.querySelector(':nth-child(2) .value-container div:first-child');
-    const currentResp = parseInt(respValue.textContent);
-    const newResp = Math.max(12, Math.min(24, currentResp + Math.floor(Math.random() * 3) - 1));
-    respValue.textContent = newResp;
+    if (respValue) {
+        respValue.textContent = '18';
+    }
     
-    // 血氧
+    // 血氧 - 从98%降至75%的低氧血症
     const spo2Value = container.querySelector(':nth-child(3) .value-container div:first-child');
-    const currentSpo2 = parseInt(spo2Value.textContent);
-    const newSpo2 = Math.max(95, Math.min(100, currentSpo2 + Math.floor(Math.random() * 3) - 1));
-    spo2Value.textContent = newSpo2;
+    if (spo2Value) {
+        // 动态变化由SpO2模拟函数控制
+        // 无需在此更新
+    }
     
-    // 血压 - 只有在未显示测量过程时才更新
+    // 血压 - 高血压危象 220/130
     const bpSys = container.querySelector(':nth-child(4) .value-container div:nth-child(1) div:nth-child(2)');
     const bpDia = container.querySelector(':nth-child(4) .value-container div:nth-child(2) div:nth-child(2)');
     const bpMap = container.querySelector(':nth-child(4) .value-container div:nth-child(3) div:nth-child(2)');
     
-    // 10%的概率更新血压值
-    if (Math.random() > 0.9) {
-        const currentSys = parseInt(bpSys.textContent);
-        const currentDia = parseInt(bpDia.textContent);
+    if (bpSys && bpDia && bpMap) {
+        bpSys.textContent = '220';
+        bpDia.textContent = '130';
+        // 计算平均动脉压 = 舒张压 + (收缩压-舒张压)/3
+        const map = Math.round(130 + (220 - 130) / 3);
+        bpMap.textContent = map.toString();
         
-        const newSys = Math.max(100, Math.min(140, currentSys + Math.floor(Math.random() * 11) - 5));
-        const newDia = Math.max(60, Math.min(90, currentDia + Math.floor(Math.random() * 9) - 4));
-        const newMap = Math.round(newDia + (newSys - newDia) / 3);
-        
-        bpSys.textContent = newSys;
-        bpDia.textContent = newDia;
-        bpMap.textContent = newMap;
+        // 设置为警告颜色
+        bpSys.style.color = '#FF3B30';
+        bpDia.style.color = '#FF3B30';
+        bpMap.style.color = '#FF3B30';
     }
     
-    // 体温
+    // 体温 - 设置为正常值
     const tempValue = container.querySelector(':nth-child(5) .value-container div:first-child');
-    const currentTemp = parseFloat(tempValue.textContent);
-    const newTemp = Math.max(36.0, Math.min(37.5, currentTemp + (Math.random() * 0.2 - 0.1))).toFixed(1);
-    tempValue.textContent = newTemp;
+    if (tempValue) {
+        tempValue.textContent = '37.0';
+    }
 }
 
-// 启动ECG波形模拟 - 符合ISO 62366-1:2015标准
+// 启动ECG波形模拟 - 急性STEMI波形
 function startECGSimulation(canvas) {
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
-    // 根据ISO标准使用高对比度的蓝色 - 相比红色和绿色，蓝色对眼睛疲劳更小
     ctx.strokeStyle = '#5CAAEE'; 
-    // 保持适当的线宽 - 太细看不清，太粗遮挡细节
     ctx.lineWidth = 2.5;
     
-    // 创建ECG II导联波形数组 - 正常窦性心律模板 (P波-QRS复合波-T波)
-    // 这个模板基于实际ECG形态学特征
+    // 创建急性STEMI ECG II导联波形数组
+    // ST段抬高3 mm（0.3 mV），弓背型
+    // 高尖T波（8 mm），R波10 mm，Q波深3 mm
+    // 心率80次/分钟
     const createECGPattern = () => {
         const pattern = [];
-        // ISO基线（等电位线）
+        const mmToPx = 20; // 1mm = 20px
+        
+        // 基线（等电位线）
         for (let i = 0; i < 20; i++) {
             pattern.push(0);
         }
-        // P波 (心房去极化) - II导联P波更明显突出
+        
+        // P波 (心房去极化)
         for (let i = 0; i < 10; i++) {
             pattern.push(Math.sin(i/10 * Math.PI) * 15);
         }
-        // PR间期 (房室传导延迟)
+        
+        // PR间期
         for (let i = 0; i < 5; i++) {
             pattern.push(0);
         }
-        // QRS复合波 (心室去极化) - II导联特征
-        pattern.push(-5);  // Q波（浅）
-        pattern.push(-10); 
-        pattern.push(60);  // R波（高）
-        pattern.push(50);
-        pattern.push(-15); // S波（深）
-        // ST段 - II导联通常ST段略上斜
-        for (let i = 0; i < 8; i++) {
-            pattern.push(5 + i * 0.5);
-        }
-        // T波 (心室复极化) - II导联T波明显
+        
+        // QRS复合波 - 带深Q波 (3mm)
+        pattern.push(-3 * mmToPx * 0.8); // Q波 3mm深
+        pattern.push(-2 * mmToPx * 0.8);
+        pattern.push(10 * mmToPx * 0.8); // R波 10mm高
+        pattern.push(8 * mmToPx * 0.8);
+        pattern.push(-2 * mmToPx * 0.8); // S波
+        
+        // ST段抬高 (3mm/0.3mV)，弓背型
         for (let i = 0; i < 15; i++) {
-            pattern.push(10 + Math.sin(i/15 * Math.PI) * 20);
+            // 弓背型ST段抬高
+            const stHeight = 3 * mmToPx * 0.8;
+            const curve = Math.sin((i / 15) * (Math.PI / 3)) * 0.3;
+            pattern.push(stHeight + stHeight * curve);
         }
-        // 等电位线
+        
+        // 高尖T波 (8mm)
+        for (let i = 0; i < 15; i++) {
+            // 创建高尖T波形态
+            const tHeight = 8 * mmToPx * 0.8;
+            const tShape = Math.pow(Math.sin(i/15 * Math.PI), 1.2); // 使T波更尖
+            pattern.push(tHeight * tShape);
+        }
+        
+        // 回到基线
         for (let i = 0; i < 15; i++) {
             pattern.push(0);
         }
@@ -2166,31 +2351,47 @@ function startECGSimulation(canvas) {
     let x = 0;
     let patternIndex = 0;
     
-    // 扫描速度设为25mm/s标准，考虑到canvas大小
-    const speed = 2; 
+    // 扫描速度设为25mm/s标准（相当于500px/s）
+    const speed = 2.5; 
     
-    // 为提高性能，预先计算随机变量
-    // 用于模拟心率变异性
+    // 模拟心率变异性的随机变量
     let randomVariation = 0;
     
+    // 找到ECG数值显示元素的更可靠方法
+    function getECGDisplayElement() {
+        // 使用数据属性查找元素
+        return document.querySelector('[data-waveform-value="ECG II"]');
+    }
+    
+    // 更新显示的心率值
+    function updateHRDisplay() {
+        const hrDisplay = getECGDisplayElement();
+        if (hrDisplay) {
+            hrDisplay.textContent = '80'; // 固定心率80
+        }
+    }
+    
+    // 初始更新一次心率显示
+    setTimeout(updateHRDisplay, 100);
+    
     function drawECG() {
-        // 清除扫描线前方的一小块区域，而不是整个画布
+        // 清除扫描线前方的一小块区域
         ctx.clearRect(x, 0, speed+1, canvas.height);
         
         const centerY = canvas.height / 2;
-        const amplitude = 1.5; // 基础振幅乘数
         
+        // 使波形与网格对齐
         if (x === 0) {
             ctx.beginPath();
             ctx.moveTo(x, centerY);
             
-            // 每个心动周期引入微小随机变化，模拟心率变异性
-            randomVariation = (Math.random() - 0.5) * 5;
+            // 添加细微的心率变异，更真实
+            randomVariation = (Math.random() - 0.5) * 3;
         }
         
         // 计算当前位置的ECG值
         const ecgValue = ecgPattern[patternIndex];
-        const nextY = centerY - ecgValue * amplitude - randomVariation;
+        const nextY = centerY - ecgValue - randomVariation;
         
         // 绘制线段
         ctx.lineTo(x, nextY);
@@ -2213,31 +2414,4 @@ function startECGSimulation(canvas) {
     
     // 启动绘制
     drawECG();
-    
-    // 更新ECG值显示 - 在监控面板上
-    function updateECGValue() {
-        // 查找心率值容器
-        const hrValueContainer = document.querySelector('#hospital-monitor-panel .value-container div:first-child');
-        if (hrValueContainer) {
-            // 产生随机心率变化
-            const baseHR = 72;
-            const variation = Math.floor(Math.random() * 5) - 2; // -2到+2的变化
-            const newHR = baseHR + variation;
-            
-            // 更新心率显示
-            hrValueContainer.textContent = newHR.toString();
-            
-            // 更新波形上的HR值显示
-            const ecgValueElement = document.querySelector('#hospital-monitor-panel div[class^="createWaveformContainer"] .value-container');
-            if (ecgValueElement) {
-                ecgValueElement.textContent = newHR.toString();
-            }
-        }
-        
-        // 每5秒更新一次
-        setTimeout(updateECGValue, 5000);
-    }
-    
-    // 开始更新ECG值
-    setTimeout(updateECGValue, 5000);
 }
