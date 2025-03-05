@@ -850,7 +850,7 @@ function createSidebar() {
     sidebar.style.position = 'fixed';
     sidebar.style.top = '0';
     sidebar.style.left = '0';
-    sidebar.style.width = '250px';
+    sidebar.style.width = '350px';
     sidebar.style.height = '100%';
     sidebar.style.backgroundColor = 'rgba(240, 240, 247, 0.9)'; // 苹果风格背景色
     sidebar.style.backdropFilter = 'blur(10px)'; // 毛玻璃效果
@@ -1082,244 +1082,88 @@ function createSidebar() {
     videoControlItem.appendChild(videoToggleSwitch);
     sidebar.appendChild(videoControlItem);
     
-    // 创建火箭控制项
-    const rocketControlItem = document.createElement('div');
-    rocketControlItem.style.display = 'flex';
-    rocketControlItem.style.justifyContent = 'space-between';
-    rocketControlItem.style.alignItems = 'center';
-    rocketControlItem.style.padding = '10px 0';
-    rocketControlItem.style.borderTop = '1px solid rgba(0, 0, 0, 0.1)';
-    rocketControlItem.style.marginTop = '10px';
+    // 创建医院病人监测控制项
+    const hospitalMonitorItem = document.createElement('div');
+    hospitalMonitorItem.style.display = 'flex';
+    hospitalMonitorItem.style.justifyContent = 'space-between';
+    hospitalMonitorItem.style.alignItems = 'center';
+    hospitalMonitorItem.style.padding = '10px 0';
+    hospitalMonitorItem.style.borderTop = '1px solid rgba(0, 0, 0, 0.1)';
+    hospitalMonitorItem.style.marginTop = '10px';
     
-    // 火箭标签
-    const rocketLabel = document.createElement('label');
-    rocketLabel.textContent = 'Rocket';
-    rocketLabel.style.fontSize = '22px';
-    rocketLabel.style.fontWeight = '500';
-    rocketLabel.style.color = '#1d1d1f';
+    // 医院监测标签
+    const hospitalLabel = document.createElement('label');
+    hospitalLabel.textContent = 'Hospital Patient Monitor';
+    hospitalLabel.style.fontSize = '22px';
+    hospitalLabel.style.fontWeight = '500';
+    hospitalLabel.style.color = '#1d1d1f';
     
-    // 火箭面板的显示/隐藏状态
-    let rocketVisible = false;
+    // 医院监测组件的显示/隐藏状态
+    let hospitalMonitorVisible = false; // 默认隐藏
     
-    // 创建火箭开关
-    const rocketToggleSwitch = document.createElement('div');
-    rocketToggleSwitch.id = 'rocket-toggle';
-    rocketToggleSwitch.className = 'toggle-switch';
-    rocketToggleSwitch.style.position = 'relative';
-    rocketToggleSwitch.style.width = '80px';
-    rocketToggleSwitch.style.height = '50px';
-    rocketToggleSwitch.style.backgroundColor = '#e9e9ea'; // 默认灰色（关闭状态）
-    rocketToggleSwitch.style.borderRadius = '25px';
-    rocketToggleSwitch.style.cursor = 'pointer';
-    rocketToggleSwitch.style.transition = 'background-color 0.3s';
+    // 创建医院监测开关
+    const hospitalToggleSwitch = document.createElement('div');
+    hospitalToggleSwitch.id = 'hospital-toggle';
+    hospitalToggleSwitch.className = 'toggle-switch';
+    hospitalToggleSwitch.style.position = 'relative';
+    hospitalToggleSwitch.style.width = '80px';
+    hospitalToggleSwitch.style.height = '50px';
+    hospitalToggleSwitch.style.backgroundColor = '#e9e9ea'; // 默认是灰色（关闭状态）
+    hospitalToggleSwitch.style.borderRadius = '25px';
+    hospitalToggleSwitch.style.cursor = 'pointer';
+    hospitalToggleSwitch.style.transition = 'background-color 0.3s';
     
-    // 创建火箭开关滑块
-    const rocketSlider = document.createElement('div');
-    rocketSlider.style.position = 'absolute';
-    rocketSlider.style.top = '3px';
-    rocketSlider.style.left = '3px'; // 默认在左侧（关闭状态）
-    rocketSlider.style.width = '44px';
-    rocketSlider.style.height = '44px';
-    rocketSlider.style.borderRadius = '50%';
-    rocketSlider.style.backgroundColor = 'white';
-    rocketSlider.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.2)';
-    rocketSlider.style.transition = 'left 0.3s';
-    rocketToggleSwitch.appendChild(rocketSlider);
+    // 创建医院监测开关滑块
+    const hospitalSlider = document.createElement('div');
+    hospitalSlider.style.position = 'absolute';
+    hospitalSlider.style.top = '3px';
+    hospitalSlider.style.left = '3px'; // 默认在左侧（关闭状态）
+    hospitalSlider.style.width = '44px';
+    hospitalSlider.style.height = '44px';
+    hospitalSlider.style.borderRadius = '50%';
+    hospitalSlider.style.backgroundColor = 'white';
+    hospitalSlider.style.boxShadow = '0 3px 8px rgba(0, 0, 0, 0.2)';
+    hospitalSlider.style.transition = 'left 0.3s';
+    hospitalToggleSwitch.appendChild(hospitalSlider);
     
-    // 替换火箭面板创建代码
-    let rocketPanel = document.getElementById('rocket-panel');
-    if (!rocketPanel) {
-        rocketPanel = document.createElement('div');
-        rocketPanel.id = 'rocket-panel';
-        rocketPanel.className = 'rocket-panel';
-        rocketPanel.style.position = 'absolute';
-        rocketPanel.style.top = '5%';
-        rocketPanel.style.right = '5%';
-        rocketPanel.style.width = '75%';
-        rocketPanel.style.height = '75%';
-        rocketPanel.style.backgroundColor = '#87CEEB'; // 蓝天颜色
-        rocketPanel.style.background = 'linear-gradient(to bottom, #87CEEB, #E0F7FF)';
-        rocketPanel.style.borderRadius = '10px';
-        rocketPanel.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-        rocketPanel.style.overflow = 'hidden';
-        rocketPanel.style.zIndex = '1000'; // 从2000改为1000，与计算器保持一致
-        rocketPanel.style.display = 'none'; // 初始隐藏
-        
-        // 创建白云 (伪元素无法通过JS直接创建，所以用div)
-        const cloud1 = document.createElement('div');
-        cloud1.style.position = 'absolute';
-        cloud1.style.width = '150px';
-        cloud1.style.height = '60px';
-        cloud1.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-        cloud1.style.borderRadius = '50%';
-        cloud1.style.top = '30px';
-        cloud1.style.left = '20%';
-        rocketPanel.appendChild(cloud1);
-        
-        const cloud2 = document.createElement('div');
-        cloud2.style.position = 'absolute';
-        cloud2.style.width = '100px';
-        cloud2.style.height = '40px';
-        cloud2.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-        cloud2.style.borderRadius = '50%';
-        cloud2.style.top = '50px';
-        cloud2.style.right = '15%';
-        rocketPanel.appendChild(cloud2);
-        
-        // 确保整个火箭（包括火箭体和火焰）都可以拖动
-        const rocketContainer = document.createElement('div');
-        rocketContainer.className = 'rocket-container';
-        rocketContainer.style.position = 'absolute';
-        rocketContainer.style.bottom = '30%'; // 从5%改为15%，让火箭更靠近面板中心
-        rocketContainer.style.left = '50%';
-        rocketContainer.style.transform = 'translateX(-50%)';
-        rocketContainer.style.width = '100px';
-        rocketContainer.style.height = '85%'; // 保持高度为面板的85%
-        rocketContainer.style.cursor = 'grab'; // 添加抓取光标样式
-        rocketContainer.style.userSelect = 'none'; // 防止文本选择
-
-        // 创建火箭和火焰
-        const rocket = document.createElement('div');
-        rocket.className = 'rocket';
-        rocket.style.position = 'relative'; // 确保定位正确
-        rocket.style.width = '100%';
-        rocket.style.height = '100%';
-        rocket.style.cursor = 'grab'; // 火箭也添加grab光标
-
-        const rocketBody = document.createElement('div');
-        rocketBody.className = 'rocket-body';
-        rocketBody.style.position = 'absolute';
-        rocketBody.style.bottom = '0';
-        rocketBody.style.left = '50%';
-        rocketBody.style.transform = 'translateX(-50%)';
-        rocketBody.style.width = '60px';
-        rocketBody.style.height = '70%'; // 从固定120px改为火箭容器高度的70%
-        rocketBody.style.background = 'linear-gradient(to right, #d3d3d3, #f5f5f5, #d3d3d3)';
-        rocketBody.style.borderTopLeftRadius = '30px';
-        rocketBody.style.borderTopRightRadius = '30px';
-        rocketBody.style.cursor = 'grab'; // 火箭体也添加grab光标
-        rocketBody.style.pointerEvents = 'none'; // 确保点击事件穿透到容器
-
-        const rocketFire = document.createElement('div');
-        rocketFire.className = 'rocket-fire';
-        rocketFire.style.position = 'absolute';
-        rocketFire.style.bottom = '-15%'; // 从-30px改为相对大小
-        rocketFire.style.left = '50%';
-        rocketFire.style.transform = 'translateX(-50%)';
-        rocketFire.style.width = '40px';
-        rocketFire.style.height = '30%'; // 从固定60px改为容器高度的30%
-        rocketFire.style.background = 'linear-gradient(to bottom, #ff5722, #ff9800, #ffeb3b)';
-        rocketFire.style.clipPath = 'polygon(0 0, 100% 0, 50% 85%)';
-        rocketFire.style.animation = 'fire 0.2s infinite alternate';
-        rocketFire.style.cursor = 'grab'; // 火焰也添加grab光标
-        rocketFire.style.pointerEvents = 'none'; // 确保点击事件穿透到容器
-
-        // 组装火箭
-        rocket.appendChild(rocketBody);
-        rocket.appendChild(rocketFire);
-
-        // 为火箭元素添加同样的事件监听器
-        rocket.addEventListener('mousedown', handleRocketMouseDown);
-        rocketContainer.addEventListener('mousedown', handleRocketMouseDown);
-
-        // 创建事件处理函数
-        function handleRocketMouseDown(e) {
-            isDraggingRocket = true;
-            
-            // 计算鼠标位置与火箭容器的偏移
-            const rect = rocketContainer.getBoundingClientRect();
-            rocketOffsetX = e.clientX - rect.left;
-            rocketOffsetY = e.clientY - rect.top;
-            
-            // 改变光标样式
-            rocketContainer.style.cursor = 'grabbing';
-            rocket.style.cursor = 'grabbing';
-            
-            // 防止文本选择等默认行为
-            e.preventDefault();
-            e.stopPropagation(); // 阻止事件冒泡
-        }
-
-        // 其他触摸事件也需要相应调整
-        rocketContainer.addEventListener('touchstart', handleRocketTouchStart);
-        rocket.addEventListener('touchstart', handleRocketTouchStart);
-
-        function handleRocketTouchStart(e) {
-            isDraggingRocket = true;
-            
-            const touch = e.touches[0];
-            const rect = rocketContainer.getBoundingClientRect();
-            rocketOffsetX = touch.clientX - rect.left;
-            rocketOffsetY = touch.clientY - rect.top;
-            
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        rocketContainer.appendChild(rocket);
-        rocketPanel.appendChild(rocketContainer);
-        
-        // 将火箭面板添加到body而不是container，确保它可以覆盖计算器
-        document.body.appendChild(rocketPanel);
-        
-        // 创建动画样式（如果不存在）
-        if (!document.getElementById('rocket-animation-style')) {
-            const styleElement = document.createElement('style');
-            styleElement.id = 'rocket-animation-style';
-            styleElement.textContent = `
-                @keyframes fire {
-                    from {
-                        height: 30%;
-                        clip-path: polygon(0 0, 100% 0, 50% 85%);
-                        opacity: 0.8;
-                    }
-                    to {
-                        height: 30%; 
-                        clip-path: polygon(0 0, 100% 0, 50% 100%);
-                        opacity: 1;
-                    }
-                }
-            `;
-            document.head.appendChild(styleElement);
-        }
-        
-        console.log('火箭面板创建完成', rocketPanel);
-    }
+    // 创建医院监测面板
+    const hospitalMonitorPanel = document.createElement('div');
+    hospitalMonitorPanel.id = 'hospital-monitor-panel';
+    hospitalMonitorPanel.style.position = 'fixed';
+    hospitalMonitorPanel.style.right = '20px';
+    hospitalMonitorPanel.style.top = '50%';
+    hospitalMonitorPanel.style.transform = 'translateY(-50%)';
+    hospitalMonitorPanel.style.width = 'calc(80% - 300px)'; // 考虑左侧边栏和边距
+    hospitalMonitorPanel.style.height = '85vh';
+    hospitalMonitorPanel.style.backgroundColor = 'white';
+    hospitalMonitorPanel.style.borderRadius = '12px';
+    hospitalMonitorPanel.style.boxShadow = '0 5px 20px rgba(0, 0, 0, 0.15)';
+    hospitalMonitorPanel.style.display = 'none'; // 默认隐藏
+    hospitalMonitorPanel.style.zIndex = '900';
+    hospitalMonitorPanel.style.padding = '20px';
+    document.body.appendChild(hospitalMonitorPanel);
     
-    // 替换火箭开关事件监听代码
-    rocketToggleSwitch.addEventListener('click', () => {
-        rocketVisible = !rocketVisible;
-        console.log('火箭开关状态:', rocketVisible);
+    // 添加医院监测开关点击事件
+    hospitalToggleSwitch.addEventListener('click', () => {
+        hospitalMonitorVisible = !hospitalMonitorVisible;
         
         // 更新开关外观
-        if (rocketVisible) {
-            rocketToggleSwitch.style.backgroundColor = '#34c759'; // 绿色
-            rocketSlider.style.left = '34px';
-            
-            // 显示火箭面板
-            if (rocketPanel) {
-                console.log('显示火箭面板');
-                rocketPanel.style.display = 'block';
-            } else {
-                console.error('火箭面板不存在');
-            }
+        if (hospitalMonitorVisible) {
+            hospitalToggleSwitch.style.backgroundColor = '#34c759'; // 绿色
+            hospitalSlider.style.left = '34px';
+            hospitalMonitorPanel.style.display = 'block';
         } else {
-            rocketToggleSwitch.style.backgroundColor = '#e9e9ea'; // 灰色
-            rocketSlider.style.left = '3px';
-            
-            // 隐藏火箭面板
-            if (rocketPanel) {
-                console.log('隐藏火箭面板');
-                rocketPanel.style.display = 'none';
-            }
+            hospitalToggleSwitch.style.backgroundColor = '#e9e9ea'; // 灰色
+            hospitalSlider.style.left = '3px';
+            hospitalMonitorPanel.style.display = 'none';
         }
     });
     
-    rocketControlItem.appendChild(rocketLabel);
-    rocketControlItem.appendChild(rocketToggleSwitch);
-    sidebar.appendChild(rocketControlItem);
+    hospitalMonitorItem.appendChild(hospitalLabel);
+    hospitalMonitorItem.appendChild(hospitalToggleSwitch);
+    sidebar.appendChild(hospitalMonitorItem);
     
-    document.body.appendChild(sidebar);
+    return sidebar;
 }
 
 // 创建虚拟宇宙和地球
@@ -1511,10 +1355,14 @@ async function startApp() {
         createCalculator();
         
         // 创建侧边导航面板
-        createSidebar();
+        const sidebar = createSidebar();
+        document.body.appendChild(sidebar);
         
         // 创建虚拟宇宙和地球
         createVirtualEarth();
+        
+        // 初始化医院监测面板内容
+        initializeHospitalMonitor();
     } catch (error) {
         console.error("Application start failed:", error);
         updateStatus("Application start failed, please refresh the page");
@@ -1628,4 +1476,205 @@ function triggerDragEnd(x, y) {
     
     // 清除拖拽数据
     window._dragStartPosition = null;
+}
+
+// 初始化医院监测面板内容
+function initializeHospitalMonitor() {
+    const panel = document.getElementById('hospital-monitor-panel');
+    if (!panel) return;
+    
+    // 添加面板标题
+    const title = document.createElement('h2');
+    title.innerHTML = 'Hospital <br> Patient <br> Monitor';
+    title.style.fontSize = '24px';
+    title.style.fontWeight = '600';
+    title.style.marginBottom = '20px';
+    title.style.color = '#1d1d1f';
+    panel.appendChild(title);
+    
+    // 添加模拟数据显示
+    const dataContainer = document.createElement('div');
+    dataContainer.style.display = 'flex';
+    dataContainer.style.flexDirection = 'column';
+    dataContainer.style.gap = '25px';
+    dataContainer.style.marginBottom = '30px';
+    
+    // 添加患者信息
+    const patientInfo = document.createElement('div');
+    patientInfo.style.display = 'flex';
+    patientInfo.style.justifyContent = 'space-between';
+    patientInfo.style.padding = '15px';
+    patientInfo.style.backgroundColor = 'rgba(240, 240, 247, 0.7)';
+    patientInfo.style.borderRadius = '8px';
+    patientInfo.style.marginBottom = '15px';
+    
+    patientInfo.innerHTML = `
+        <div>
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 5px;">Patient: John Doe</div>
+            <div style="font-size: 16px; color: #555;">ID: 12345678</div>
+        </div>
+        <div>
+            <div style="font-size: 16px; margin-bottom: 5px;">Age: 45</div>
+            <div style="font-size: 16px; color: #555;">Room: 302-A</div>
+        </div>
+        <div>
+            <div style="font-size: 16px; margin-bottom: 5px;">Blood Type: A+</div>
+            <div style="font-size: 16px; color: #555;">Doctor: Dr. Smith</div>
+        </div>
+    `;
+    
+    dataContainer.appendChild(patientInfo);
+    
+    // 添加生命体征面板
+    const vitalsContainer = document.createElement('div');
+    vitalsContainer.style.display = 'flex';
+    vitalsContainer.style.justifyContent = 'space-between';
+    vitalsContainer.style.gap = '20px';
+    
+    // 心率
+    const heartRatePanel = createVitalPanel('Heart Rate', '72', 'BPM', '#007AFF', '60-100');
+    
+    // 血压
+    const bpPanel = createVitalPanel('Blood Pressure', '120/80', 'mmHg', '#FF9500', '90/60-120/80');
+    
+    // 体温
+    const tempPanel = createVitalPanel('Temperature', '36.8', '°C', '#FF2D55', '36.5-37.5');
+    
+    // 血氧
+    const spo2Panel = createVitalPanel('SpO₂', '98', '%', '#34C759', '95-100');
+    
+    vitalsContainer.appendChild(heartRatePanel);
+    vitalsContainer.appendChild(bpPanel);
+    vitalsContainer.appendChild(tempPanel);
+    vitalsContainer.appendChild(spo2Panel);
+    
+    dataContainer.appendChild(vitalsContainer);
+    
+    // 添加ECG图表
+    const ecgContainer = document.createElement('div');
+    ecgContainer.style.width = '100%';
+    ecgContainer.style.height = '200px';
+    ecgContainer.style.backgroundColor = 'black';
+    ecgContainer.style.borderRadius = '8px';
+    ecgContainer.style.position = 'relative';
+    ecgContainer.style.marginTop = '20px';
+    
+    // 模拟ECG线
+    const ecgLine = document.createElement('canvas');
+    ecgLine.width = ecgContainer.offsetWidth || 800;
+    ecgLine.height = 200;
+    ecgLine.style.position = 'absolute';
+    ecgLine.style.left = '0';
+    ecgLine.style.top = '0';
+    
+    ecgContainer.appendChild(ecgLine);
+    
+    // 添加ECG标题
+    const ecgTitle = document.createElement('div');
+    ecgTitle.textContent = 'ECG - Lead II';
+    ecgTitle.style.position = 'absolute';
+    ecgTitle.style.left = '10px';
+    ecgTitle.style.top = '10px';
+    ecgTitle.style.color = '#4CD964';
+    ecgTitle.style.fontSize = '14px';
+    ecgTitle.style.fontWeight = 'bold';
+    ecgContainer.appendChild(ecgTitle);
+    
+    dataContainer.appendChild(ecgContainer);
+    
+    panel.appendChild(dataContainer);
+    
+    // 启动ECG动画
+    startECGSimulation(ecgLine);
+}
+
+// 创建生命体征面板
+function createVitalPanel(title, value, unit, color, range) {
+    const panel = document.createElement('div');
+    panel.style.flex = '1';
+    panel.style.backgroundColor = 'rgba(240, 240, 247, 0.7)';
+    panel.style.borderRadius = '8px';
+    panel.style.padding = '15px';
+    panel.style.display = 'flex';
+    panel.style.flexDirection = 'column';
+    panel.style.alignItems = 'center';
+    panel.style.justifyContent = 'center';
+    
+    const titleElem = document.createElement('div');
+    titleElem.textContent = title;
+    titleElem.style.fontWeight = '500';
+    titleElem.style.fontSize = '16px';
+    titleElem.style.marginBottom = '10px';
+    titleElem.style.color = '#1d1d1f';
+    panel.appendChild(titleElem);
+    
+    const valueElem = document.createElement('div');
+    valueElem.textContent = value;
+    valueElem.style.fontWeight = '700';
+    valueElem.style.fontSize = '32px';
+    valueElem.style.color = color;
+    valueElem.style.marginBottom = '5px';
+    panel.appendChild(valueElem);
+    
+    const unitElem = document.createElement('div');
+    unitElem.textContent = unit;
+    unitElem.style.fontSize = '14px';
+    unitElem.style.color = '#666';
+    panel.appendChild(unitElem);
+    
+    const rangeElem = document.createElement('div');
+    rangeElem.textContent = 'Normal: ' + range;
+    rangeElem.style.fontSize = '12px';
+    rangeElem.style.color = '#888';
+    rangeElem.style.marginTop = '8px';
+    panel.appendChild(rangeElem);
+    
+    return panel;
+}
+
+// ECG模拟
+function startECGSimulation(canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#4CD964'; // 绿色
+    ctx.lineWidth = 2;
+    
+    let x = 0;
+    const ecgPattern = [
+        0, 0, 0, 0, 0, 2, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+        0, 0, 0, 0, 0, 0, 0, 0, 5, 10, -20, 20, -2, 0, 0, 0, 0
+    ];
+    let patternIndex = 0;
+    
+    function drawECG() {
+        // 清除一小部分画布
+        ctx.clearRect(x, 0, 3, canvas.height);
+        
+        const centerY = canvas.height / 2;
+        const amplitude = 50; // 振幅
+        
+        if (x === 0) {
+            ctx.beginPath();
+            ctx.moveTo(x, centerY);
+        }
+        
+        // 从模式获取下一个Y值
+        const nextY = centerY - ecgPattern[patternIndex] * amplitude / 20;
+        ctx.lineTo(x, nextY);
+        ctx.stroke();
+        
+        // 更新索引
+        patternIndex = (patternIndex + 1) % ecgPattern.length;
+        
+        // 更新x位置
+        x += 2;
+        if (x >= canvas.width) {
+            x = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+        }
+        
+        requestAnimationFrame(drawECG);
+    }
+    
+    drawECG();
 } 
