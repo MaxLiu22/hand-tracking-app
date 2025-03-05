@@ -1963,6 +1963,11 @@ function startRespirationSimulation(canvas) {
     // 初始更新一次呼吸率显示
     setTimeout(updateRespDisplay, 100);
     
+    // 计算呼吸波形的预期最大和最小值
+    const maxAmplitude = 20 * mmToPx * 0.8; // 最大振幅20mm
+    const waveformMin = -maxAmplitude * 1.1; // 预留10%的余量
+    const waveformMax = maxAmplitude * 1.1;
+    
     function drawRespiration() {
         // 清除扫描线前方的一小块区域
         ctx.clearRect(x, 0, 3, canvas.height);
@@ -1984,18 +1989,20 @@ function startRespirationSimulation(canvas) {
         
         // 创建从0到20再回到0的正弦振幅变化
         const amplitudeModulation = Math.sin(cyclePosition * Math.PI * 2) * 0.5 + 0.5;
-        const maxAmplitude = 20 * mmToPx * 0.8; // 最大振幅20mm
         const currentMaxAmplitude = maxAmplitude * amplitudeModulation;
         
         // 基础呼吸正弦波形
         const breathPhase = cycleTime * 5; // 呼吸频率
         const breathValue = Math.sin(breathPhase);
         
-        // 计算最终的波形，振幅受到调制
-        const finalY = centerY - breathValue * currentMaxAmplitude;
+        // 计算最终的波形值
+        const waveValue = breathValue * currentMaxAmplitude;
+        
+        // 使用自适应算法计算Y位置
+        const adaptedY = adaptWaveformToCanvas(waveValue, waveformMin, waveformMax, canvas);
         
         // 绘制呼吸波形
-        ctx.lineTo(x, finalY);
+        ctx.lineTo(x, adaptedY);
         ctx.stroke();
         
         // 更新x位置
@@ -2017,6 +2024,28 @@ function startRespirationSimulation(canvas) {
     }
     
     drawRespiration();
+}
+
+// 添加自适应波形算法函数
+function adaptWaveformToCanvas(value, min, max, canvas) {
+    // 计算波形应该显示的区域（留出一些边距）
+    const margin = canvas.height * 0.1; // 上下各留10%的边距
+    const availableHeight = canvas.height - 2 * margin;
+    
+    // 计算波形数据的范围
+    const dataRange = max - min;
+    
+    // 如果数据范围过小，设置一个最小范围
+    const effectiveRange = dataRange > 0 ? dataRange : 1;
+    
+    // 将值映射到画布高度范围内
+    const normalizedValue = (value - min) / effectiveRange;
+    const scaledValue = normalizedValue * availableHeight;
+    
+    // 反转Y坐标（因为canvas的Y轴是向下的）并添加上边距
+    const yPosition = canvas.height - (scaledValue + margin);
+    
+    return yPosition;
 }
 
 // 启动SpO2波形模拟 - 低氧血症模式
@@ -2065,15 +2094,18 @@ function startSpO2Simulation(canvas) {
         hypoxemiaStart = true;
     }, 5000); // 5秒后开始低氧事件
     
+    // 计算SpO2波形的预期最大和最小值，用于自适应算法
+    const normalAmplitude = 0.5 * mmToPx; // 基础振幅0.5mm
+    const waveformMin = -normalAmplitude * 1.2; // 比实际最小值略小一点，留有余量
+    const waveformMax = normalAmplitude * 1.2;  // 比实际最大值略大一点，留有余量
+    
     function drawSpO2() {
         // 清除扫描线前方的一小块区域
         ctx.clearRect(x, 0, 3, canvas.height);
         
-        const centerY = canvas.height / 2;
-        
         if (x === 0) {
             ctx.beginPath();
-            ctx.moveTo(x, centerY);
+            ctx.moveTo(x, canvas.height / 2);
         }
         
         // 产生低氧事件
@@ -2113,10 +2145,12 @@ function startSpO2Simulation(canvas) {
         
         // 计算最终波形值
         const waveValue = pulsatile * currentAmplitude + noise;
-        const nextY = centerY - waveValue;
+        
+        // 使用自适应算法计算Y位置
+        const adaptedY = adaptWaveformToCanvas(waveValue, waveformMin, waveformMax, canvas);
         
         // 绘制SpO2波形
-        ctx.lineTo(x, nextY);
+        ctx.lineTo(x, adaptedY);
         ctx.stroke();
         
         // 更新x位置
@@ -2168,6 +2202,12 @@ function startNIBPSimulation(canvas) {
     // 初始更新一次血压显示
     setTimeout(updateNIBPDisplay, 100);
     
+    // 高血压危象的振幅 - 5mm
+    const amplitude = 5 * mmToPx * 0.8;
+    // 计算波形的预期最大和最小值，考虑震荡和噪声
+    const waveformMin = -amplitude * 0.2; // 考虑可能的负向偏移
+    const waveformMax = amplitude * 1.2; // 考虑二级震荡可能带来的峰值增加
+    
     function drawNIBP() {
         // 清除扫描线前方的一小块区域
         ctx.clearRect(x, 0, 3, canvas.height);
@@ -2196,9 +2236,6 @@ function startNIBPSimulation(canvas) {
             waveShape = Math.cos(decayPhase * Math.PI / 2);
         }
         
-        // 高血压危象的振幅 - 5mm
-        const amplitude = 5 * mmToPx * 0.8;
-        
         // 添加二级震荡，模拟高压下的动脉壁震荡
         const highPressureOscillation = Math.sin(phase * 6) * 0.1 * amplitude;
         
@@ -2207,10 +2244,12 @@ function startNIBPSimulation(canvas) {
         
         // 计算最终波形
         const waveValue = waveShape * amplitude + highPressureOscillation + noise;
-        const nextY = centerY - waveValue;
+        
+        // 使用自适应算法计算Y位置
+        const adaptedY = adaptWaveformToCanvas(waveValue, waveformMin, waveformMax, canvas);
         
         // 绘制NIBP波形
-        ctx.lineTo(x, nextY);
+        ctx.lineTo(x, adaptedY);
         ctx.stroke();
         
         // 更新x位置
@@ -2347,6 +2386,10 @@ function startECGSimulation(canvas) {
     const ecgPattern = createECGPattern();
     const patternLength = ecgPattern.length;
     
+    // 计算波形的最大值和最小值，用于自适应算法
+    let minEcgValue = Math.min(...ecgPattern);
+    let maxEcgValue = Math.max(...ecgPattern);
+    
     let x = 0;
     let patternIndex = 0;
     
@@ -2377,6 +2420,7 @@ function startECGSimulation(canvas) {
         // 清除扫描线前方的一小块区域
         ctx.clearRect(x, 0, speed+1, canvas.height);
         
+        // 使用自适应算法计算基线位置（基线作为中心点）
         const centerY = canvas.height / 2;
         
         // 使波形与网格对齐
@@ -2390,10 +2434,18 @@ function startECGSimulation(canvas) {
         
         // 计算当前位置的ECG值
         const ecgValue = ecgPattern[patternIndex];
-        const nextY = centerY - ecgValue - randomVariation;
+        
+        // 使用自适应算法计算Y位置
+        // 考虑随机变异添加到最大最小值范围中
+        const adaptedY = adaptWaveformToCanvas(
+            ecgValue + randomVariation, 
+            minEcgValue - 5, // 为随机变异预留空间
+            maxEcgValue + 5, // 为随机变异预留空间
+            canvas
+        );
         
         // 绘制线段
-        ctx.lineTo(x, nextY);
+        ctx.lineTo(x, adaptedY);
         ctx.stroke();
         
         // 更新索引
