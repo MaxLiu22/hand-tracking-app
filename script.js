@@ -1569,7 +1569,7 @@ function initializeHospitalMonitor() {
     
     // 创建右侧数值区域 (占30%)
     const numericsArea = document.createElement('div');
-    numericsArea.style.flex = '3';
+    numericsArea.style.flex = '2.4'; // 修改为原来的80%（从3变为2.4）
     numericsArea.style.padding = '10px';
     numericsArea.style.display = 'flex';
     numericsArea.style.flexDirection = 'column';
