@@ -1483,187 +1483,377 @@ function initializeHospitalMonitor() {
     const panel = document.getElementById('hospital-monitor-panel');
     if (!panel) return;
     
-    // 添加面板标题
-    const title = document.createElement('h2');
-    title.innerHTML = 'Hospital <br> Patient <br> Monitor';
-    title.style.fontSize = '24px';
-    title.style.fontWeight = '600';
-    title.style.marginBottom = '20px';
-    title.style.color = '#1d1d1f';
-    panel.appendChild(title);
+    // 设置监护仪整体风格 - 模仿MindRay设备的深色背景
+    panel.style.backgroundColor = '#0E1621';
+    panel.style.color = '#FFFFFF';
+    panel.style.fontFamily = 'Arial, sans-serif';
+    panel.style.overflow = 'hidden';
     
-    // 添加模拟数据显示
-    const dataContainer = document.createElement('div');
-    dataContainer.style.display = 'flex';
-    dataContainer.style.flexDirection = 'column';
-    dataContainer.style.gap = '25px';
-    dataContainer.style.marginBottom = '30px';
+    // 添加MindRay logo和设备型号
+    const headerBar = document.createElement('div');
+    headerBar.style.display = 'flex';
+    headerBar.style.justifyContent = 'space-between';
+    headerBar.style.alignItems = 'center';
+    headerBar.style.padding = '10px 15px';
+    headerBar.style.backgroundColor = '#0A1018';
+    headerBar.style.borderBottom = '1px solid #2A3A4A';
     
-    // 添加患者信息
-    const patientInfo = document.createElement('div');
-    patientInfo.style.display = 'flex';
-    patientInfo.style.justifyContent = 'space-between';
-    patientInfo.style.padding = '15px';
-    patientInfo.style.backgroundColor = 'rgba(240, 240, 247, 0.7)';
-    patientInfo.style.borderRadius = '8px';
-    patientInfo.style.marginBottom = '15px';
+    const logoDiv = document.createElement('div');
+    logoDiv.innerHTML = '<span style="color:#5CAAEE; font-weight:bold; font-size:22px;">MindRay-Like Gesture Control HPM</span>';
+    logoDiv.style.display = 'flex';
+    logoDiv.style.alignItems = 'center';
     
-    patientInfo.innerHTML = `
-        <div>
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 5px;">Patient: John Doe</div>
-            <div style="font-size: 16px; color: #555;">ID: 12345678</div>
+    const deviceModel = document.createElement('div');
+    deviceModel.textContent = 'BeneView T8';
+    deviceModel.style.fontSize = '14px';
+    deviceModel.style.color = '#9AADC8';
+    
+    const dateTimeDiv = document.createElement('div');
+    dateTimeDiv.style.fontSize = '14px';
+    dateTimeDiv.style.color = '#9AADC8';
+    
+    // 更新时间函数
+    function updateDateTime() {
+        const now = new Date();
+        dateTimeDiv.textContent = now.toLocaleString();
+    }
+    
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+    
+    headerBar.appendChild(logoDiv);
+    headerBar.appendChild(deviceModel);
+    headerBar.appendChild(dateTimeDiv);
+    panel.appendChild(headerBar);
+    
+    // 添加患者信息栏
+    const patientBar = document.createElement('div');
+    patientBar.style.display = 'flex';
+    patientBar.style.justifyContent = 'space-between';
+    patientBar.style.padding = '8px 15px';
+    patientBar.style.backgroundColor = '#1A2736';
+    patientBar.style.color = '#D0E3FF';
+    patientBar.style.fontSize = '14px';
+    
+    patientBar.innerHTML = `
+        <div style="display: flex; gap: 20px;">
+            <div><strong>Patient:</strong> John Doe</div>
+            <div><strong>ID:</strong> 12345678</div>
+            <div><strong>Age:</strong> 45</div>
+            <div><strong>Gender:</strong> Male</div>
         </div>
-        <div>
-            <div style="font-size: 16px; margin-bottom: 5px;">Age: 45</div>
-            <div style="font-size: 16px; color: #555;">Room: 302-A</div>
-        </div>
-        <div>
-            <div style="font-size: 16px; margin-bottom: 5px;">Blood Type: A+</div>
-            <div style="font-size: 16px; color: #555;">Doctor: Dr. Smith</div>
+        <div style="display: flex; gap: 20px;">
+            <div><strong>Room:</strong> 302-A</div>
+            <div><strong>Doctor:</strong> Dr. Smith</div>
+            <div><strong>Blood Type:</strong> A+</div>
         </div>
     `;
     
-    dataContainer.appendChild(patientInfo);
+    panel.appendChild(patientBar);
     
-    // 添加生命体征面板
-    const vitalsContainer = document.createElement('div');
-    vitalsContainer.style.display = 'flex';
-    vitalsContainer.style.justifyContent = 'space-between';
-    vitalsContainer.style.gap = '20px';
+    // 创建主监控区域
+    const monitorContainer = document.createElement('div');
+    monitorContainer.style.display = 'flex';
+    monitorContainer.style.height = 'calc(100% - 120px)';
+    panel.appendChild(monitorContainer);
     
+    // 创建左侧波形区域 (占70%)
+    const waveformsArea = document.createElement('div');
+    waveformsArea.style.flex = '7';
+    waveformsArea.style.display = 'flex';
+    waveformsArea.style.flexDirection = 'column';
+    waveformsArea.style.padding = '10px';
+    waveformsArea.style.gap = '10px';
+    waveformsArea.style.borderRight = '1px solid #2A3A4A';
+    monitorContainer.appendChild(waveformsArea);
+    
+    // 创建右侧数值区域 (占30%)
+    const numericsArea = document.createElement('div');
+    numericsArea.style.flex = '3';
+    numericsArea.style.padding = '10px';
+    numericsArea.style.display = 'flex';
+    numericsArea.style.flexDirection = 'column';
+    numericsArea.style.gap = '10px';
+    monitorContainer.appendChild(numericsArea);
+    
+    // 添加ECG波形区域
+    const ecgContainer = createWaveformContainer('ECG II', '#5CAAEE', 'mV');
+    const ecgCanvas = ecgContainer.querySelector('canvas');
+    waveformsArea.appendChild(ecgContainer);
+    
+    // 添加呼吸波形区域
+    const respContainer = createWaveformContainer('RESP', '#4CD964', 'rpm');
+    const respCanvas = respContainer.querySelector('canvas');
+    waveformsArea.appendChild(respContainer);
+    
+    // 添加SpO2波形区域
+    const spo2Container = createWaveformContainer('SpO₂', '#FF9500', '%');
+    const spo2Canvas = spo2Container.querySelector('canvas');
+    waveformsArea.appendChild(spo2Container);
+    
+    // 添加血压波形区域
+    const nibpContainer = createWaveformContainer('NIBP', '#FF2D55', 'mmHg');
+    const nibpCanvas = nibpContainer.querySelector('canvas');
+    waveformsArea.appendChild(nibpContainer);
+    
+    // 添加数值区域的生命体征参数
     // 心率
-    const heartRatePanel = createVitalPanel('Heart Rate', '72', 'BPM', '#007AFF', '60-100');
+    numericsArea.appendChild(createParameterBox('HR', '72', 'bpm', '#5CAAEE', '60-100', '40', '120'));
     
-    // 血压
-    const bpPanel = createVitalPanel('Blood Pressure', '120/80', 'mmHg', '#FF9500', '90/60-120/80');
-    
-    // 体温
-    const tempPanel = createVitalPanel('Temperature', '36.8', '°C', '#FF2D55', '36.5-37.5');
+    // 呼吸
+    numericsArea.appendChild(createParameterBox('RESP', '18', 'rpm', '#4CD964', '12-20', '8', '25'));
     
     // 血氧
-    const spo2Panel = createVitalPanel('SpO₂', '98', '%', '#34C759', '95-100');
+    numericsArea.appendChild(createParameterBox('SpO₂', '98', '%', '#FF9500', '95-100', '90', '100'));
     
-    vitalsContainer.appendChild(heartRatePanel);
-    vitalsContainer.appendChild(bpPanel);
-    vitalsContainer.appendChild(tempPanel);
-    vitalsContainer.appendChild(spo2Panel);
+    // 血压
+    const bpBox = createParameterBox('NIBP', '', '', '#FF2D55', '', '', '');
+    bpBox.querySelector('.value-container').innerHTML = `
+        <div style="display: flex; justify-content: space-between; width: 100%;">
+            <div>
+                <span style="font-size: 16px; color: #AAA;">SYS</span>
+                <div style="font-size: 28px; font-weight: bold; color: #FF2D55;">120</div>
+            </div>
+            <div>
+                <span style="font-size: 16px; color: #AAA;">DIA</span>
+                <div style="font-size: 28px; font-weight: bold; color: #FF2D55;">80</div>
+            </div>
+            <div>
+                <span style="font-size: 16px; color: #AAA;">MAP</span>
+                <div style="font-size: 28px; font-weight: bold; color: #FF2D55;">93</div>
+            </div>
+        </div>
+        <div style="font-size: 12px; color: #888; margin-top: 5px;">mmHg</div>
+    `;
+    numericsArea.appendChild(bpBox);
     
-    dataContainer.appendChild(vitalsContainer);
+    // 体温
+    numericsArea.appendChild(createParameterBox('TEMP', '36.8', '°C', '#34C759', '36.5-37.5', '35.5', '38.0'));
     
-    // 添加ECG图表
-    const ecgContainer = document.createElement('div');
-    ecgContainer.style.width = '100%';
-    ecgContainer.style.height = '200px';
-    ecgContainer.style.backgroundColor = 'black';
-    ecgContainer.style.borderRadius = '8px';
-    ecgContainer.style.position = 'relative';
-    ecgContainer.style.marginTop = '20px';
+    // 创建底部警报与消息区域
+    const alertBar = document.createElement('div');
+    alertBar.style.backgroundColor = '#1A2736';
+    alertBar.style.padding = '8px 15px';
+    alertBar.style.borderTop = '1px solid #2A3A4A';
+    alertBar.style.display = 'flex';
+    alertBar.style.justifyContent = 'space-between';
+    alertBar.style.fontSize = '14px';
+    alertBar.style.color = '#9AADC8';
+    alertBar.innerHTML = `
+        <div>All alarms active</div>
+        <div>Adult mode</div>
+        <div>Network: Connected</div>
+        <div>Battery: 80%</div>
+    `;
+    panel.appendChild(alertBar);
     
-    // 模拟ECG线
-    const ecgLine = document.createElement('canvas');
-    ecgLine.width = ecgContainer.offsetWidth || 800;
-    ecgLine.height = 200;
-    ecgLine.style.position = 'absolute';
-    ecgLine.style.left = '0';
-    ecgLine.style.top = '0';
+    // 启动所有波形动画
+    startECGSimulation(ecgCanvas);
+    startRespirationSimulation(respCanvas);
+    startSpO2Simulation(spo2Canvas);
+    startNIBPSimulation(nibpCanvas);
     
-    ecgContainer.appendChild(ecgLine);
-    
-    // 添加ECG标题
-    const ecgTitle = document.createElement('div');
-    ecgTitle.textContent = 'ECG - Lead II';
-    ecgTitle.style.position = 'absolute';
-    ecgTitle.style.left = '10px';
-    ecgTitle.style.top = '10px';
-    ecgTitle.style.color = '#4CD964';
-    ecgTitle.style.fontSize = '14px';
-    ecgTitle.style.fontWeight = 'bold';
-    ecgContainer.appendChild(ecgTitle);
-    
-    dataContainer.appendChild(ecgContainer);
-    
-    panel.appendChild(dataContainer);
-    
-    // 启动ECG动画
-    startECGSimulation(ecgLine);
+    // 定时更新数值（模拟实时数据）
+    setInterval(() => {
+        updateVitalSigns(numericsArea);
+    }, 5000);
 }
 
-// 创建生命体征面板
-function createVitalPanel(title, value, unit, color, range) {
-    const panel = document.createElement('div');
-    panel.style.flex = '1';
-    panel.style.backgroundColor = 'rgba(240, 240, 247, 0.7)';
-    panel.style.borderRadius = '8px';
-    panel.style.padding = '15px';
-    panel.style.display = 'flex';
-    panel.style.flexDirection = 'column';
-    panel.style.alignItems = 'center';
-    panel.style.justifyContent = 'center';
+// 创建波形容器
+function createWaveformContainer(title, color, unit) {
+    const container = document.createElement('div');
+    container.style.flex = '1';
+    container.style.backgroundColor = '#121E2A';
+    container.style.borderRadius = '5px';
+    container.style.position = 'relative';
+    container.style.overflow = 'hidden';
+    
+    // 添加标题和单位
+    const labelContainer = document.createElement('div');
+    labelContainer.style.position = 'absolute';
+    labelContainer.style.top = '5px';
+    labelContainer.style.left = '10px';
+    labelContainer.style.display = 'flex';
+    labelContainer.style.gap = '10px';
+    labelContainer.style.alignItems = 'center';
+    labelContainer.style.zIndex = '1';
     
     const titleElem = document.createElement('div');
     titleElem.textContent = title;
-    titleElem.style.fontWeight = '500';
+    titleElem.style.fontWeight = 'bold';
+    titleElem.style.color = color;
+    titleElem.style.fontSize = '14px';
+    labelContainer.appendChild(titleElem);
+    
+    const unitElem = document.createElement('div');
+    unitElem.textContent = unit;
+    unitElem.style.color = '#888';
+    unitElem.style.fontSize = '12px';
+    labelContainer.appendChild(unitElem);
+    
+    container.appendChild(labelContainer);
+    
+    // 添加当前值
+    const valueContainer = document.createElement('div');
+    valueContainer.style.position = 'absolute';
+    valueContainer.style.top = '5px';
+    valueContainer.style.right = '10px';
+    valueContainer.style.fontWeight = 'bold';
+    valueContainer.style.fontSize = '18px';
+    valueContainer.style.color = color;
+    container.appendChild(valueContainer);
+    
+    // 如果是ECG，显示心率
+    if (title === 'ECG II') {
+        valueContainer.textContent = '72';
+    } else if (title === 'RESP') {
+        valueContainer.textContent = '18';
+    } else if (title === 'SpO₂') {
+        valueContainer.textContent = '98';
+    } else if (title === 'NIBP') {
+        valueContainer.textContent = '120/80';
+    }
+    
+    // 添加网格背景
+    const gridCanvas = document.createElement('canvas');
+    gridCanvas.style.position = 'absolute';
+    gridCanvas.style.top = '0';
+    gridCanvas.style.left = '0';
+    gridCanvas.style.width = '100%';
+    gridCanvas.style.height = '100%';
+    gridCanvas.width = 1000; // 将在resize时调整
+    gridCanvas.height = 200;
+    container.appendChild(gridCanvas);
+    
+    // 绘制网格
+    const gridCtx = gridCanvas.getContext('2d');
+    gridCtx.strokeStyle = 'rgba(80, 100, 120, 0.2)';
+    gridCtx.lineWidth = 1;
+    
+    // 横线
+    for (let y = 0; y < gridCanvas.height; y += 20) {
+        gridCtx.beginPath();
+        gridCtx.moveTo(0, y);
+        gridCtx.lineTo(gridCanvas.width, y);
+        gridCtx.stroke();
+    }
+    
+    // 竖线
+    for (let x = 0; x < gridCanvas.width; x += 20) {
+        gridCtx.beginPath();
+        gridCtx.moveTo(x, 0);
+        gridCtx.lineTo(x, gridCanvas.height);
+        gridCtx.stroke();
+    }
+    
+    // 波形画布
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.width = 1000; // 将在resize时调整
+    canvas.height = 200;
+    container.appendChild(canvas);
+    
+    return container;
+}
+
+// 创建参数框
+function createParameterBox(title, value, unit, color, normalRange, lowLimit, highLimit) {
+    const box = document.createElement('div');
+    box.style.backgroundColor = '#121E2A';
+    box.style.borderRadius = '5px';
+    box.style.padding = '10px';
+    box.style.display = 'flex';
+    box.style.flexDirection = 'column';
+    
+    // 参数标题
+    const titleRow = document.createElement('div');
+    titleRow.style.display = 'flex';
+    titleRow.style.justifyContent = 'space-between';
+    titleRow.style.marginBottom = '5px';
+    
+    const titleElem = document.createElement('div');
+    titleElem.textContent = title;
+    titleElem.style.fontWeight = 'bold';
+    titleElem.style.color = color;
     titleElem.style.fontSize = '16px';
-    titleElem.style.marginBottom = '10px';
-    titleElem.style.color = '#1d1d1f';
-    panel.appendChild(titleElem);
+    titleRow.appendChild(titleElem);
+    
+    const rangeElem = document.createElement('div');
+    rangeElem.style.fontSize = '12px';
+    rangeElem.style.color = '#888';
+    rangeElem.textContent = lowLimit ? `${lowLimit} - ${highLimit}` : '';
+    titleRow.appendChild(rangeElem);
+    
+    box.appendChild(titleRow);
+    
+    // 参数值
+    const valueContainer = document.createElement('div');
+    valueContainer.className = 'value-container';
+    valueContainer.style.display = 'flex';
+    valueContainer.style.alignItems = 'flex-end';
+    valueContainer.style.gap = '5px';
     
     const valueElem = document.createElement('div');
     valueElem.textContent = value;
-    valueElem.style.fontWeight = '700';
     valueElem.style.fontSize = '32px';
+    valueElem.style.fontWeight = 'bold';
     valueElem.style.color = color;
-    valueElem.style.marginBottom = '5px';
-    panel.appendChild(valueElem);
+    valueContainer.appendChild(valueElem);
     
     const unitElem = document.createElement('div');
     unitElem.textContent = unit;
     unitElem.style.fontSize = '14px';
-    unitElem.style.color = '#666';
-    panel.appendChild(unitElem);
+    unitElem.style.color = '#AAA';
+    unitElem.style.marginBottom = '5px';
+    valueContainer.appendChild(unitElem);
     
-    const rangeElem = document.createElement('div');
-    rangeElem.textContent = 'Normal: ' + range;
-    rangeElem.style.fontSize = '12px';
-    rangeElem.style.color = '#888';
-    rangeElem.style.marginTop = '8px';
-    panel.appendChild(rangeElem);
+    box.appendChild(valueContainer);
     
-    return panel;
+    // 添加正常范围指示
+    if (normalRange) {
+        const normalRangeElem = document.createElement('div');
+        normalRangeElem.textContent = `Normal: ${normalRange}`;
+        normalRangeElem.style.fontSize = '12px';
+        normalRangeElem.style.color = '#777';
+        normalRangeElem.style.marginTop = '2px';
+        box.appendChild(normalRangeElem);
+    }
+    
+    return box;
 }
 
-// ECG模拟
-function startECGSimulation(canvas) {
+// 启动呼吸波形模拟
+function startRespirationSimulation(canvas) {
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = '#4CD964'; // 绿色
     ctx.lineWidth = 2;
     
     let x = 0;
-    const ecgPattern = [
-        0, 0, 0, 0, 0, 2, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-        0, 0, 0, 0, 0, 0, 0, 0, 5, 10, -20, 20, -2, 0, 0, 0, 0
-    ];
-    let patternIndex = 0;
+    // 呼吸波形模式 - 比ECG更平缓的正弦波
+    let phase = 0;
     
-    function drawECG() {
+    function drawRespiration() {
         // 清除一小部分画布
         ctx.clearRect(x, 0, 3, canvas.height);
         
         const centerY = canvas.height / 2;
-        const amplitude = 50; // 振幅
+        const amplitude = 30; // 振幅
         
         if (x === 0) {
             ctx.beginPath();
             ctx.moveTo(x, centerY);
         }
         
-        // 从模式获取下一个Y值
-        const nextY = centerY - ecgPattern[patternIndex] * amplitude / 20;
+        // 生成呼吸波形 - 比ECG更缓慢的正弦波
+        phase += 0.03;
+        const nextY = centerY - Math.sin(phase) * amplitude;
+        
         ctx.lineTo(x, nextY);
         ctx.stroke();
-        
-        // 更新索引
-        patternIndex = (patternIndex + 1) % ecgPattern.length;
         
         // 更新x位置
         x += 2;
@@ -1673,8 +1863,174 @@ function startECGSimulation(canvas) {
             ctx.beginPath();
         }
         
-        requestAnimationFrame(drawECG);
+        requestAnimationFrame(drawRespiration);
     }
     
-    drawECG();
-} 
+    drawRespiration();
+}
+
+// 启动SpO2波形模拟
+function startSpO2Simulation(canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#FF9500'; // 橙色
+    ctx.lineWidth = 2;
+    
+    let x = 0;
+    // SpO2波形模式 - 类似脉搏的波形
+    let phase = 0;
+    
+    function drawSpO2() {
+        // 清除一小部分画布
+        ctx.clearRect(x, 0, 3, canvas.height);
+        
+        const centerY = canvas.height / 2;
+        const amplitude = 25; // 振幅
+        
+        if (x === 0) {
+            ctx.beginPath();
+            ctx.moveTo(x, centerY);
+        }
+        
+        // 生成SpO2波形 - 快速上升和缓慢下降的脉搏波形
+        phase += 0.05;
+        let value = Math.sin(phase);
+        // 使波形有更快的上升和较慢的下降
+        value = value > 0 ? Math.pow(value, 0.5) : Math.pow(value, 3) * 0.5;
+        const nextY = centerY - value * amplitude;
+        
+        ctx.lineTo(x, nextY);
+        ctx.stroke();
+        
+        // 更新x位置
+        x += 2;
+        if (x >= canvas.width) {
+            x = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+        }
+        
+        requestAnimationFrame(drawSpO2);
+    }
+    
+    drawSpO2();
+}
+
+// 启动NIBP波形模拟
+function startNIBPSimulation(canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#FF2D55'; // 红色
+    ctx.lineWidth = 2;
+    
+    let x = 0;
+    let phase = 0;
+    let measuring = false;
+    let measureStart = 0;
+    
+    function drawNIBP() {
+        // 清除一小部分画布
+        ctx.clearRect(x, 0, 3, canvas.height);
+        
+        const centerY = canvas.height / 2;
+        
+        if (x === 0) {
+            ctx.beginPath();
+            ctx.moveTo(x, centerY);
+            
+            // 50%的概率开始测量
+            if (Math.random() > 0.995 && !measuring) {
+                measuring = true;
+                measureStart = Date.now();
+            }
+        }
+        
+        let nextY = centerY;
+        
+        // 如果正在测量，显示BP测量动画
+        if (measuring) {
+            const elapsed = Date.now() - measureStart;
+            
+            if (elapsed < 5000) { // 膨胀阶段
+                const progress = elapsed / 5000;
+                // 上升到一个高点
+                const amplitude = 50 * progress;
+                // 添加一些脉搏震动
+                phase += 0.2;
+                nextY = centerY - amplitude - Math.sin(phase) * 3 * progress;
+            } else if (elapsed < 15000) { // 缓慢释放阶段
+                const progress = (elapsed - 5000) / 10000;
+                const amplitude = 50 * (1 - progress);
+                // 添加越来越明显的脉搏震动
+                phase += 0.2;
+                nextY = centerY - amplitude - Math.sin(phase) * (5 + 10 * progress);
+            } else {
+                measuring = false; // 测量完成
+            }
+        } else {
+            // 不测量时显示平缓的基线
+            nextY = centerY;
+        }
+        
+        ctx.lineTo(x, nextY);
+        ctx.stroke();
+        
+        // 更新x位置
+        x += 2;
+        if (x >= canvas.width) {
+            x = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+        }
+        
+        requestAnimationFrame(drawNIBP);
+    }
+    
+    drawNIBP();
+}
+
+// 模拟更新生命体征数值
+function updateVitalSigns(container) {
+    // 随机变化一些值，模拟实时数据
+
+    // 心率
+    const hrValue = container.querySelector(':nth-child(1) .value-container div:first-child');
+    const currentHR = parseInt(hrValue.textContent);
+    const newHR = Math.max(60, Math.min(100, currentHR + Math.floor(Math.random() * 7) - 3));
+    hrValue.textContent = newHR;
+    
+    // 呼吸
+    const respValue = container.querySelector(':nth-child(2) .value-container div:first-child');
+    const currentResp = parseInt(respValue.textContent);
+    const newResp = Math.max(12, Math.min(24, currentResp + Math.floor(Math.random() * 3) - 1));
+    respValue.textContent = newResp;
+    
+    // 血氧
+    const spo2Value = container.querySelector(':nth-child(3) .value-container div:first-child');
+    const currentSpo2 = parseInt(spo2Value.textContent);
+    const newSpo2 = Math.max(95, Math.min(100, currentSpo2 + Math.floor(Math.random() * 3) - 1));
+    spo2Value.textContent = newSpo2;
+    
+    // 血压 - 只有在未显示测量过程时才更新
+    const bpSys = container.querySelector(':nth-child(4) .value-container div:nth-child(1) div:nth-child(2)');
+    const bpDia = container.querySelector(':nth-child(4) .value-container div:nth-child(2) div:nth-child(2)');
+    const bpMap = container.querySelector(':nth-child(4) .value-container div:nth-child(3) div:nth-child(2)');
+    
+    // 10%的概率更新血压值
+    if (Math.random() > 0.9) {
+        const currentSys = parseInt(bpSys.textContent);
+        const currentDia = parseInt(bpDia.textContent);
+        
+        const newSys = Math.max(100, Math.min(140, currentSys + Math.floor(Math.random() * 11) - 5));
+        const newDia = Math.max(60, Math.min(90, currentDia + Math.floor(Math.random() * 9) - 4));
+        const newMap = Math.round(newDia + (newSys - newDia) / 3);
+        
+        bpSys.textContent = newSys;
+        bpDia.textContent = newDia;
+        bpMap.textContent = newMap;
+    }
+    
+    // 体温
+    const tempValue = container.querySelector(':nth-child(5) .value-container div:first-child');
+    const currentTemp = parseFloat(tempValue.textContent);
+    const newTemp = Math.max(36.0, Math.min(37.5, currentTemp + (Math.random() * 0.2 - 0.1))).toFixed(1);
+    tempValue.textContent = newTemp;
+}
