@@ -1093,7 +1093,7 @@ function createSidebar() {
     
     // 医院监测标签
     const hospitalLabel = document.createElement('label');
-    hospitalLabel.textContent = 'Hospital Patient Monitor';
+    hospitalLabel.innerHTML = 'Hospital Patient Monitor';
     hospitalLabel.style.fontSize = '22px';
     hospitalLabel.style.fontWeight = '500';
     hospitalLabel.style.color = '#1d1d1f';
@@ -1133,7 +1133,7 @@ function createSidebar() {
     hospitalMonitorPanel.style.right = '20px';
     hospitalMonitorPanel.style.top = '50%';
     hospitalMonitorPanel.style.transform = 'translateY(-50%)';
-    hospitalMonitorPanel.style.width = 'calc(80% - 300px)'; // 考虑左侧边栏和边距
+    hospitalMonitorPanel.style.width = 'calc(75% - 300px)'; // 考虑左侧边栏和边距
     hospitalMonitorPanel.style.height = '85vh';
     hospitalMonitorPanel.style.backgroundColor = 'white';
     hospitalMonitorPanel.style.borderRadius = '12px';
@@ -1668,8 +1668,7 @@ function createWaveformContainer(title, color, unit) {
     container.style.border = '1px solid rgba(255, 255, 255, 0.2)';
     container.style.position = 'relative';
     container.style.overflow = 'hidden';
-    container.style.width = '800px'; // 设置固定宽度为800px
-    container.style.height = '200px'; // 设置固定高度为200px
+    // 移除固定宽度和高度，使其自适应父容器
     container.dataset.waveformType = title; // 添加数据属性来标识波形类型
     
     // 添加标题和单位
@@ -1728,7 +1727,7 @@ function createWaveformContainer(title, color, unit) {
     gridCanvas.style.left = '0';
     gridCanvas.style.width = '100%';
     gridCanvas.style.height = '100%';
-    gridCanvas.width = 800;
+    gridCanvas.width = 1000; // 恢复原来的宽度
     gridCanvas.height = 200;
     container.appendChild(gridCanvas);
     
@@ -1787,7 +1786,7 @@ function createWaveformContainer(title, color, unit) {
     canvas.style.left = '0';
     canvas.style.width = '100%';
     canvas.style.height = '100%';
-    canvas.width = 800;
+    canvas.width = 1000; // 恢复原来的宽度
     canvas.height = 200;
     canvas.className = 'waveform-canvas';
     container.appendChild(canvas);
